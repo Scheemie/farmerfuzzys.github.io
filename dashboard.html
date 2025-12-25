@@ -9,6 +9,8 @@
 
 <div class="container">
   <h1>Dashboard</h1>
+
+  <div id="selfPanel"></div>
   <div id="adminPanel"></div>
 
   <button onclick="logout()">Logout</button>
@@ -18,17 +20,35 @@
 const me = JSON.parse(localStorage.currentUser || "null");
 if (!me) location.href = "index.html";
 
-function logout(){
+const users = JSON.parse(localStorage.users);
+
+function logout() {
   localStorage.removeItem("currentUser");
-  location.href="index.html";
+  location.href = "index.html";
 }
 
+/* ========== EIGENE DATEN ========= */
+selfPanel.innerHTML = `
+  <h3>Meine Daten</h3>
+  <p>Benutzer: <b>${me.user}</b></p>
+  <input id="newPass" type="password" placeholder="Neues Passwort">
+  <button onclick="changePass()">Passwort ändern</button>
+`;
+
+function changePass() {
+  const u = users.find(x => x.user === me.user);
+  u.pass = newPass.value;
+  localStorage.users = JSON.stringify(users);
+  alert("Passwort geändert");
+}
+
+/* ========== ADMIN PANEL ========= */
 if (me.role === "admin") {
   adminPanel.innerHTML = `
     <h3>Admin – Benutzerverwaltung</h3>
 
     <input id="newUser" placeholder="Benutzername">
-    <input id="newPass" placeholder="Passwort">
+    <input id="newUserPass" placeholder="Passwort">
     <button class="admin" onclick="addUser()">Benutzer erstellen</button>
 
     <div class="list" id="list"></div>
@@ -36,30 +56,36 @@ if (me.role === "admin") {
   render();
 }
 
-function render(){
-  const users = JSON.parse(localStorage.users);
+function render() {
   list.innerHTML = "";
-  users.forEach((u,i)=>{
+  users.forEach((u, i) => {
     list.innerHTML += `
       <div class="user">
-        ${u.user}
-        ${u.role==="admin"?"(Admin)":""}
-        <button onclick="del(${i})">X</button>
+        ${u.user} (${u.role})
+        <div>
+          <button onclick="toggleAdmin(${i})">Admin</button>
+          <button onclick="delUser(${i})">X</button>
+        </div>
       </div>
     `;
-  })
+  });
 }
 
-function addUser(){
-  const users = JSON.parse(localStorage.users);
-  users.push({user:newUser.value, pass:newPass.value, role:"user"});
+function addUser() {
+  users.push({ user: newUser.value, pass: newUserPass.value, role: "user" });
   localStorage.users = JSON.stringify(users);
   render();
 }
 
-function del(i){
-  const users = JSON.parse(localStorage.users);
-  users.splice(i,1);
+function delUser(i) {
+  if (users[i].user === me.user) return alert("Du kannst dich nicht selbst löschen");
+  users.splice(i, 1);
+  localStorage.users = JSON.stringify(users);
+  render();
+}
+
+function toggleAdmin(i) {
+  users[i].role = users[i].role === "admin" ? "user" : "admin";
   localStorage.users = JSON.stringify(users);
   render();
 }
