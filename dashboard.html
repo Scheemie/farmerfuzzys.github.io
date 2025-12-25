@@ -3,15 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Willkommen bei FarmerFuzzys</h1>
 
-  <ul>
-    <li><a href="files/example.txt" download>Datei herunterladen</a></li>
-    <li><a href="#">Upload (kommt noch)</a></li>
-  </ul>
+<div class="container">
+  <h1>Dashboard</h1>
+  <div id="adminPanel"></div>
 
-  <a href="index.html">Logout</a>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+const me = JSON.parse(localStorage.currentUser || "null");
+if (!me) location.href = "index.html";
+
+function logout(){
+  localStorage.removeItem("currentUser");
+  location.href="index.html";
+}
+
+if (me.role === "admin") {
+  adminPanel.innerHTML = `
+    <h3>Admin – Benutzerverwaltung</h3>
+
+    <input id="newUser" placeholder="Benutzername">
+    <input id="newPass" placeholder="Passwort">
+    <button class="admin" onclick="addUser()">Benutzer erstellen</button>
+
+    <div class="list" id="list"></div>
+  `;
+  render();
+}
+
+function render(){
+  const users = JSON.parse(localStorage.users);
+  list.innerHTML = "";
+  users.forEach((u,i)=>{
+    list.innerHTML += `
+      <div class="user">
+        ${u.user}
+        ${u.role==="admin"?"(Admin)":""}
+        <button onclick="del(${i})">X</button>
+      </div>
+    `;
+  })
+}
+
+function addUser(){
+  const users = JSON.parse(localStorage.users);
+  users.push({user:newUser.value, pass:newPass.value, role:"user"});
+  localStorage.users = JSON.stringify(users);
+  render();
+}
+
+function del(i){
+  const users = JSON.parse(localStorage.users);
+  users.splice(i,1);
+  localStorage.users = JSON.stringify(users);
+  render();
+}
+</script>
+
 </body>
 </html>
