@@ -15,16 +15,16 @@
 
     <main class="content">
         <div class="welcome-section">
-            <h1 id="welcomeText">Lädt...</h1>
-            <div id="roleBadge" class="badge">Rolle</div>
+            <h1 id="welcomeText">Dashboard wird geladen...</h1>
+            <div id="roleBadge" class="badge">Prüfe Rechte...</div>
         </div>
 
         <div id="adminArea" style="display:none;">
             <div class="grid">
                 <div class="glass-card admin-card">
                     <h2>Neuen User erstellen</h2>
-                    <input id="newUser" placeholder="Benutzername">
-                    <input id="newPass" type="password" placeholder="Passwort">
+                    <input id="newUser" placeholder="Neuer Benutzername">
+                    <input id="newPass" type="password" placeholder="Passwort (min. 6 Zeichen)">
                     <select id="newRole">
                         <option value="user">Standard User</option>
                         <option value="admin">Administrator</option>
@@ -34,22 +34,24 @@
 
                 <div class="glass-card list-card">
                     <h2>Benutzerverwaltung</h2>
-                    <div id="userList" class="user-list">
-                        </div>
+                    <div id="userList" class="user-list"></div>
                 </div>
             </div>
         </div>
     </main>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "842395157432",
-            authDomain: "Farmerfuzzys.firebaseapp.com",
-            projectId: "farmerfuzzys-c32eb"
+            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
+            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
+            projectId: "farmerfuzzys-c32eb",
+            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
+            messagingSenderId: "842395157432",
+            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -62,7 +64,10 @@
             if (!user) { location.href = "index.html"; return; }
             
             const snap = await getDoc(doc(db, "users", user.uid));
-            if (!snap.exists()) { alert("Kein Profil gefunden!"); return; }
+            if (!snap.exists()) { 
+                document.body.innerHTML = "<h1 style='color:white; text-align:center;'>Kein Profil in Firestore gefunden für UID: " + user.uid + "</h1>"; 
+                return; 
+            }
             
             const data = snap.data();
             document.getElementById('welcomeText').innerText = `Hallo, ${data.username}!`;
@@ -79,15 +84,17 @@
             const pass = document.getElementById('newPass').value;
             const role = document.getElementById('newRole').value;
 
-            // Der Trick: Eine zweite App-Instanz nutzen, um den Admin nicht auszuloggen
-            const adminApp = initializeApp(firebaseConfig, "AdminApp");
+            if(!name || pass.length < 6) return alert("Name nötig & Passwort min. 6 Zeichen!");
+
+            const adminApp = initializeApp(firebaseConfig, "TempApp");
             const adminAuth = getAuth(adminApp);
 
             try {
                 const cred = await createUserWithEmailAndPassword(adminAuth, toEmail(name), pass);
                 await setDoc(doc(db, "users", cred.user.uid), { username: name, role: role });
                 await signOut(adminAuth);
-                alert("User erstellt!");
+                await deleteApp(adminApp);
+                alert("User '" + name + "' erfolgreich erstellt!");
                 location.reload();
             } catch (e) { alert("Fehler: " + e.message); }
         };
@@ -98,16 +105,22 @@
             list.innerHTML = "";
             snap.forEach(uDoc => {
                 const u = uDoc.data();
-                list.innerHTML += `
-                    <div class="user-item">
-                        <span><b>${u.username}</b> (${u.role})</span>
-                        <button class="btn-danger" onclick="deleteUser('${uDoc.id}')">Löschen</button>
-                    </div>`;
+                const div = document.createElement('div');
+                div.className = "user-item";
+                div.innerHTML = `<span><b>${u.username}</b> (${u.role})</span>`;
+                
+                const delBtn = document.createElement('button');
+                delBtn.innerText = "Löschen";
+                delBtn.className = "btn-danger";
+                delBtn.onclick = () => deleteUser(uDoc.id);
+                
+                div.appendChild(delBtn);
+                list.appendChild(div);
             });
         }
 
         window.deleteUser = async (id) => {
-            if(confirm("Eintrag löschen?")) {
+            if(confirm("Diesen Nutzer-Eintrag wirklich löschen?")) {
                 await deleteDoc(doc(db, "users", id));
                 location.reload();
             }
