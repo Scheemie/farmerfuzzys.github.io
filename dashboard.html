@@ -1,91 +1,204 @@
-<section id="sec-mods" class="content-section" style="display:none;">
-    <h1>Mod-Datenbank</h1>
-    
-    <div id="modUploadBox" class="glass-card" style="display:none; border: 1px solid var(--accent); margin-bottom: 20px;">
-        <h3>Neuen Mod hochladen</h3>
-        <input id="modName" placeholder="Mod Name">
-        <input id="modVersion" placeholder="Version">
-        <input id="modType" placeholder="Art (z.B. Traktor)">
-        <label>Datei (.zip):</label> <input type="file" id="modFile" accept=".zip">
-        <label>Bild:</label> <input type="file" id="modImg" accept="image/*">
-        <button id="uploadBtn" onclick="uploadMod()" class="btn-primary">Veröffentlichen</button>
-    </div>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | FarmerFuzzys</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-body">
 
-    <div id="modGallery" class="mod-grid"></div>
-</section>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <img src="Farmerfuzzys_logo.jpg" class="nav-logo">
+            <span>FarmerFuzzys</span>
+        </div>
+        <nav class="side-nav">
+            <button onclick="showSection('profile')">👤 Profil</button>
+            <button onclick="showSection('mods')">🚜 Mods</button>
+            <div id="adminLinks" style="display:none;">
+                <hr>
+                <button onclick="showSection('admin')">⚙️ Mitglieder</button>
+            </div>
+            <button onclick="logout()" class="logout-btn">🚪 Logout</button>
+        </nav>
+    </aside>
 
-<script type="module">
-    // ... (Firebase Imports wie vorher) ...
-    import { deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    <main class="main-content">
+        <section id="sec-profile" class="content-section">
+            <h1 id="welcomeText">Wird geladen...</h1>
+            <div class="glass-card">
+                <h3>Einstellungen</h3>
+                <input id="changeMyName" placeholder="Neuer Anzeigename">
+                <button onclick="updateMyName()" class="btn-primary">Speichern</button>
+            </div>
+        </section>
 
-    // ... (Firebase Config & Init) ...
+        <section id="sec-mods" class="content-section" style="display:none;">
+            <h1>Mod-Datenbank</h1>
+            <div id="modUploadBox" class="glass-card" style="display:none; border: 1px solid var(--accent); margin-bottom: 20px;">
+                <h3>Neuen Mod hochladen (Modder & Admins)</h3>
+                <input id="modName" placeholder="Mod Name">
+                <input id="modVersion" placeholder="Version">
+                <input id="modType" placeholder="Art (z.B. Map, Traktor)">
+                <label>Datei (.zip):</label> <input type="file" id="modFile" accept=".zip">
+                <label>Bild:</label> <input type="file" id="modImg" accept="image/*">
+                <button id="uploadBtn" onclick="uploadMod()" class="btn-primary">Veröffentlichen</button>
+            </div>
+            <div id="modGallery" class="mod-grid"></div>
+        </section>
 
-    let userRole = "user";
+        <section id="sec-admin" class="content-section" style="display:none;">
+            <h1>Mitglieder-Verwaltung</h1>
+            <div class="grid">
+                <div class="glass-card">
+                    <h3>Neues Mitglied</h3>
+                    <input id="newUser" placeholder="Username">
+                    <input id="newPass" type="password" placeholder="Passwort">
+                    <select id="newRole">
+                        <option value="user">User (Nur Download)</option>
+                        <option value="modder">Modder (Upload-Rechte)</option>
+                        <option value="admin">Admin (Alles)</option>
+                    </select>
+                    <button onclick="createUser()" class="btn-primary">Erstellen</button>
+                </div>
+                <div class="glass-card">
+                    <h3>Mitgliederliste</h3>
+                    <div id="userList"></div>
+                </div>
+            </div>
+        </section>
+    </main>
 
-    onAuthStateChanged(auth, async user => {
-        if (!user) { location.href = "index.html"; return; }
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-            const data = snap.data();
-            userRole = data.role;
-            document.getElementById('welcomeText').innerText = `Hallo, ${data.username}!`;
-            
-            // Rechte-Prüfung
-            if (userRole === "admin") {
-                document.getElementById('adminLinks').style.display = "block";
-                document.getElementById('newRole').innerHTML += `<option value="modder">Modder</option>`; // Admin kann Modder erstellen
+    <script type="module">
+        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
+            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
+            projectId: "farmerfuzzys-c32eb",
+            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
+            messagingSenderId: "842395157432",
+            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let userRole = "user";
+
+        window.showSection = (id) => {
+            document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+            document.getElementById('sec-' + id).style.display = 'block';
+            if(id === 'mods') loadMods();
+            if(id === 'admin') loadUsers();
+        };
+
+        onAuthStateChanged(auth, async user => {
+            if (!user) { location.href = "index.html"; return; }
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()) {
+                const data = snap.data();
+                userRole = data.role;
+                document.getElementById('welcomeText').innerText = `Hallo, ${data.username}!`;
+                if (userRole === "admin") document.getElementById('adminLinks').style.display = "block";
+                if (userRole === "admin" || userRole === "modder") document.getElementById('modUploadBox').style.display = "block";
             }
-            if (userRole === "admin" || userRole === "modder") {
-                document.getElementById('modUploadBox').style.display = "block";
-            }
-        }
-    });
-
-    // MOD LÖSCHEN (Nur für Admins)
-    window.deleteMod = async (modId, filePath, imgPath) => {
-        if (userRole !== "admin") return alert("Nur Admins dürfen löschen!");
-        if (!confirm("Willst du diesen Mod wirklich löschen?")) return;
-
-        try {
-            // 1. Dateien im Storage löschen (um Platz zu sparen)
-            const fileRef = ref(storage, filePath);
-            await deleteObject(fileRef);
-            if(imgPath && !imgPath.includes("placeholder")) {
-                await deleteObject(ref(storage, imgPath));
-            }
-            // 2. Eintrag in Firestore löschen
-            await deleteDoc(doc(db, "mods", modId));
-            alert("Mod gelöscht!");
-            loadMods();
-        } catch (e) { alert("Fehler beim Löschen: " + e.message); }
-    };
-
-    async function loadMods() {
-        const snap = await getDocs(collection(db, "mods"));
-        const gallery = document.getElementById('modGallery');
-        gallery.innerHTML = "";
-        snap.forEach(mDoc => {
-            const m = mDoc.data();
-            const isAdmin = userRole === "admin";
-            gallery.innerHTML += `
-                <div class="mod-card">
-                    <img src="${m.imgUrl}">
-                    <div class="mod-info">
-                        <h4>${m.name}</h4>
-                        <p>${m.type} | v${m.version}</p>
-                        <a href="${m.fileUrl}" target="_blank" class="download-btn">Download</a>
-                        ${isAdmin ? `<button onclick="deleteMod('${mDoc.id}', '${m.fullFilePath}', '${m.fullImgPath}')" class="btn-danger" style="width:100%; margin-top:5px;">Löschen</button>` : ''}
-                    </div>
-                </div>`;
         });
-    }
 
-    // Beim Upload müssen wir jetzt die Pfade mitspeichern, damit wir später löschen können
-    window.uploadMod = async () => {
-        // ... (Dateien holen wie vorher) ...
-        const fullFilePath = `mods/${Date.now()}_${file.name}`;
-        const fileRef = ref(storage, fullFilePath);
-        // ... (Upload Logik) ...
-        // Beim addDoc fügen wir 'fullFilePath' und 'fullImgPath' hinzu
-    };
-</script>
+        // MOD LOGIK
+        window.uploadMod = async () => {
+            const name = document.getElementById('modName').value;
+            const file = document.getElementById('modFile').files[0];
+            const img = document.getElementById('modImg').files[0];
+            if(!name || !file) return alert("Name und Datei fehlen!");
+            
+            const btn = document.getElementById('uploadBtn');
+            btn.innerText = "Hochladen..."; btn.disabled = true;
+
+            try {
+                const fileRefPath = `mods/${Date.now()}_${file.name}`;
+                const fileRef = ref(storage, fileRefPath);
+                await uploadBytes(fileRef, file);
+                const fileUrl = await getDownloadURL(fileRef);
+
+                let imgUrl = "https://via.placeholder.com/150";
+                let imgRefPath = "";
+                if(img) {
+                    imgRefPath = `images/${Date.now()}_${img.name}`;
+                    const imgRef = ref(storage, imgRefPath);
+                    await uploadBytes(imgRef, img);
+                    imgUrl = await getDownloadURL(imgRef);
+                }
+
+                await addDoc(collection(db, "mods"), {
+                    name, fileUrl, imgUrl, fileRefPath, imgRefPath,
+                    version: document.getElementById('modVersion').value || "1.0",
+                    type: document.getElementById('modType').value || "Mod"
+                });
+                alert("Erfolgreich!"); location.reload();
+            } catch (e) { alert(e.message); btn.innerText = "Fehler"; btn.disabled = false; }
+        };
+
+        async function loadMods() {
+            const snap = await getDocs(collection(db, "mods"));
+            const gallery = document.getElementById('modGallery');
+            gallery.innerHTML = "";
+            snap.forEach(mDoc => {
+                const m = mDoc.data();
+                gallery.innerHTML += `
+                    <div class="mod-card">
+                        <img src="${m.imgUrl}">
+                        <div class="mod-info">
+                            <h4>${m.name}</h4>
+                            <p>${m.type} | v${m.version}</p>
+                            <a href="${m.fileUrl}" target="_blank" class="download-btn">Download</a>
+                            ${userRole === 'admin' ? `<button onclick="deleteMod('${mDoc.id}','${m.fileRefPath}','${m.imgRefPath}')" class="btn-danger">Löschen</button>` : ''}
+                        </div>
+                    </div>`;
+            });
+        }
+
+        window.deleteMod = async (id, fPath, iPath) => {
+            if(!confirm("Wirklich löschen?")) return;
+            await deleteDoc(doc(db, "mods", id));
+            if(fPath) await deleteObject(ref(storage, fPath));
+            if(iPath) await deleteObject(ref(storage, iPath));
+            loadMods();
+        };
+
+        // ADMIN NUTZER LOGIK
+        window.createUser = async () => {
+            const n = document.getElementById('newUser').value;
+            const p = document.getElementById('newPass').value;
+            const r = document.getElementById('newRole').value;
+            const tempApp = initializeApp(firebaseConfig, "Temp");
+            const tempAuth = getAuth(tempApp);
+            try {
+                const c = await createUserWithEmailAndPassword(tempAuth, n.toLowerCase() + "@farmerfuzzys.local", p);
+                await setDoc(doc(db, "users", c.user.uid), { username: n, role: r });
+                await signOut(tempAuth); await deleteApp(tempApp);
+                alert("Nutzer erstellt!"); loadUsers();
+            } catch (e) { alert(e.message); }
+        };
+
+        async function loadUsers() {
+            const snap = await getDocs(collection(db, "users"));
+            const list = document.getElementById('userList');
+            list.innerHTML = "";
+            snap.forEach(uDoc => {
+                const u = uDoc.data();
+                list.innerHTML += `<div class="user-item"><span>${u.username} (${u.role})</span> <button onclick="deleteUser('${uDoc.id}')" class="btn-danger">X</button></div>`;
+            });
+        }
+
+        window.deleteUser = async (id) => { if(confirm("Löschen?")) { await deleteDoc(doc(db, "users", id)); loadUsers(); } };
+        window.logout = () => signOut(auth);
+    </script>
+</body>
+</html>
