@@ -1,132 +1,138 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="dashboard-body">
-
-    <nav class="navbar">
-        <span class="logo">FarmerFuzzys</span>
-        <button onclick="logout()" class="btn-secondary">Logout</button>
-    </nav>
-
-    <main class="content">
-        <div class="welcome-section">
-            <h1 id="welcomeText">Dashboard wird geladen...</h1>
-            <div id="roleBadge" class="badge">Prüfe Rechte...</div>
+<main class="content">
+    <div class="welcome-section">
+        <h1 id="welcomeText">Dashboard...</h1>
+        <div id="roleBadge" class="badge">Rolle</div>
+        
+        <div class="glass-card" style="margin-top: 20px;">
+            <h3>Meine Einstellungen</h3>
+            <input id="changeMyName" placeholder="Neuer Anzeigename">
+            <button onclick="updateMyName()" class="btn-secondary" style="margin-bottom:10px;">Name speichern</button>
+            
+            <input id="changeMyPass" type="password" placeholder="Neues Passwort (min. 6 Zeichen)">
+            <button onclick="updateMyPassword()" class="btn-secondary">Passwort ändern</button>
         </div>
+    </div>
 
-        <div id="adminArea" style="display:none;">
-            <div class="grid">
-                <div class="glass-card admin-card">
-                    <h2>Neuen User erstellen</h2>
-                    <input id="newUser" placeholder="Neuer Benutzername">
-                    <input id="newPass" type="password" placeholder="Passwort (min. 6 Zeichen)">
-                    <select id="newRole">
-                        <option value="user">Standard User</option>
-                        <option value="admin">Administrator</option>
-                    </select>
-                    <button onclick="createUser()" class="btn-primary">Account erstellen</button>
-                </div>
+    <div id="adminArea" style="display:none;">
+        <div class="grid">
+            <div class="glass-card admin-card">
+                <h2>Neuen User erstellen</h2>
+                <input id="newUser" placeholder="Benutzername">
+                <input id="newPass" type="password" placeholder="Passwort">
+                <select id="newRole">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button onclick="createUser()" class="btn-primary">Account erstellen</button>
+            </div>
 
-                <div class="glass-card list-card">
-                    <h2>Benutzerverwaltung</h2>
-                    <div id="userList" class="user-list"></div>
-                </div>
+            <div class="glass-card list-card">
+                <h2>Benutzerverwaltung</h2>
+                <div id="userList" class="user-list"></div>
             </div>
         </div>
-    </main>
+    </div>
+</main>
 
-    <script type="module">
-        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script type="module">
+    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
-            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
-            projectId: "farmerfuzzys-c32eb",
-            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
-            messagingSenderId: "842395157432",
-            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
+        authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
+        projectId: "farmerfuzzys-c32eb",
+        storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
+        messagingSenderId: "842395157432",
+        appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        const toEmail = (name) => name.toLowerCase().trim() + "@farmerfuzzys.local";
+    let currentUserData = null;
 
-        onAuthStateChanged(auth, async user => {
-            if (!user) { location.href = "index.html"; return; }
-            
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if (!snap.exists()) { 
-                document.body.innerHTML = "<h1 style='color:white; text-align:center;'>Kein Profil in Firestore gefunden für UID: " + user.uid + "</h1>"; 
-                return; 
-            }
-            
-            const data = snap.data();
-            document.getElementById('welcomeText').innerText = `Hallo, ${data.username}!`;
-            document.getElementById('roleBadge').innerText = data.role.toUpperCase();
-
-            if (data.role === "admin") {
+    onAuthStateChanged(auth, async user => {
+        if (!user) { location.href = "index.html"; return; }
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+            currentUserData = snap.data();
+            document.getElementById('welcomeText').innerText = `Hallo, ${currentUserData.username}!`;
+            document.getElementById('roleBadge').innerText = currentUserData.role.toUpperCase();
+            if (currentUserData.role === "admin") {
                 document.getElementById('adminArea').style.display = "block";
                 loadUsers();
             }
-        });
-
-        window.createUser = async () => {
-            const name = document.getElementById('newUser').value;
-            const pass = document.getElementById('newPass').value;
-            const role = document.getElementById('newRole').value;
-
-            if(!name || pass.length < 6) return alert("Name nötig & Passwort min. 6 Zeichen!");
-
-            const adminApp = initializeApp(firebaseConfig, "TempApp");
-            const adminAuth = getAuth(adminApp);
-
-            try {
-                const cred = await createUserWithEmailAndPassword(adminAuth, toEmail(name), pass);
-                await setDoc(doc(db, "users", cred.user.uid), { username: name, role: role });
-                await signOut(adminAuth);
-                await deleteApp(adminApp);
-                alert("User '" + name + "' erfolgreich erstellt!");
-                location.reload();
-            } catch (e) { alert("Fehler: " + e.message); }
-        };
-
-        async function loadUsers() {
-            const snap = await getDocs(collection(db, "users"));
-            const list = document.getElementById('userList');
-            list.innerHTML = "";
-            snap.forEach(uDoc => {
-                const u = uDoc.data();
-                const div = document.createElement('div');
-                div.className = "user-item";
-                div.innerHTML = `<span><b>${u.username}</b> (${u.role})</span>`;
-                
-                const delBtn = document.createElement('button');
-                delBtn.innerText = "Löschen";
-                delBtn.className = "btn-danger";
-                delBtn.onclick = () => deleteUser(uDoc.id);
-                
-                div.appendChild(delBtn);
-                list.appendChild(div);
-            });
         }
+    });
 
-        window.deleteUser = async (id) => {
-            if(confirm("Diesen Nutzer-Eintrag wirklich löschen?")) {
-                await deleteDoc(doc(db, "users", id));
-                location.reload();
-            }
-        };
+    // EIGENE DATEN ÄNDERN
+    window.updateMyName = async () => {
+        const newName = document.getElementById('changeMyName').value;
+        if(!newName) return alert("Bitte Namen eingeben");
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { username: newName });
+        alert("Name aktualisiert!");
+        location.reload();
+    };
 
-        window.logout = () => signOut(auth);
-    </script>
-</body>
-</html>
+    window.updateMyPassword = async () => {
+        const newPass = document.getElementById('changeMyPass').value;
+        if(newPass.length < 6) return alert("Passwort zu kurz!");
+        try {
+            await updatePassword(auth.currentUser, newPass);
+            alert("Passwort erfolgreich geändert!");
+        } catch (e) { alert("Fehler: Logge dich neu ein und versuche es sofort wieder (Sicherheitsmaßnahme)."); }
+    };
+
+    // ADMIN FUNKTIONEN
+    window.editUserPrompt = async (uid, oldName) => {
+        const newName = prompt("Neuer Name für " + oldName + ":", oldName);
+        if (newName) {
+            await updateDoc(doc(db, "users", uid), { username: newName });
+            loadUsers();
+        }
+    };
+
+    async function loadUsers() {
+        const snap = await getDocs(collection(db, "users"));
+        const list = document.getElementById('userList');
+        list.innerHTML = "";
+        snap.forEach(uDoc => {
+            const u = uDoc.data();
+            const div = document.createElement('div');
+            div.className = "user-item";
+            div.innerHTML = `
+                <span><b>${u.username}</b> (${u.role})</span>
+                <div>
+                    <button class="btn-secondary" onclick="editUserPrompt('${uDoc.id}', '${u.username}')" style="width:auto; padding:5px 10px;">Edit</button>
+                    <button class="btn-danger" onclick="deleteUser('${uDoc.id}')" style="width:auto; padding:5px 10px;">X</button>
+                </div>`;
+            list.appendChild(div);
+        });
+    }
+
+    // (Die Funktionen createUser, deleteUser und logout bleiben wie im vorherigen Code)
+    window.createUser = async () => {
+        const name = document.getElementById('newUser').value;
+        const pass = document.getElementById('newPass').value;
+        const role = document.getElementById('newRole').value;
+        const adminApp = initializeApp(firebaseConfig, "TempApp");
+        const adminAuth = getAuth(adminApp);
+        try {
+            const cred = await createUserWithEmailAndPassword(adminAuth, name.toLowerCase() + "@farmerfuzzys.local", pass);
+            await setDoc(doc(db, "users", cred.user.uid), { username: name, role: role });
+            await signOut(adminAuth);
+            await deleteApp(adminApp);
+            alert("User erstellt!");
+            location.reload();
+        } catch (e) { alert(e.message); }
+    };
+
+    window.deleteUser = async (id) => {
+        if(confirm("Löschen?")) { await deleteDoc(doc(db, "users", id)); location.reload(); }
+    };
+
+    window.logout = () => signOut(auth);
+</script>
