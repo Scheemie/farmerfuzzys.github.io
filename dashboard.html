@@ -1,204 +1,179 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | FarmerFuzzys</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="dashboard-body">
+:root {
+    --sidebar-width: 260px;
+    --sidebar-bg: #020617;
+    --main-bg: #0f172a;
+    --accent: #10b981;
+    --accent-hover: #059669;
+    --card-bg: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --danger: #ef4444;
+    --transition: all 0.2s ease-in-out;
+}
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <img src="Farmerfuzzys_logo.jpg" class="nav-logo">
-            <span>FarmerFuzzys</span>
-        </div>
-        <nav class="side-nav">
-            <button onclick="showSection('profile')">👤 Profil</button>
-            <button onclick="showSection('mods')">🚜 Mods</button>
-            <div id="adminLinks" style="display:none;">
-                <hr>
-                <button onclick="showSection('admin')">⚙️ Mitglieder</button>
-            </div>
-            <button onclick="logout()" class="logout-btn">🚪 Logout</button>
-        </nav>
-    </aside>
+* {
+    box-sizing: border-box;
+}
 
-    <main class="main-content">
-        <section id="sec-profile" class="content-section">
-            <h1 id="welcomeText">Wird geladen...</h1>
-            <div class="glass-card">
-                <h3>Einstellungen</h3>
-                <input id="changeMyName" placeholder="Neuer Anzeigename">
-                <button onclick="updateMyName()" class="btn-primary">Speichern</button>
-            </div>
-        </section>
+body {
+    margin: 0;
+    display: flex;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: var(--main-bg);
+    color: var(--text-main);
+    line-height: 1.5;
+}
 
-        <section id="sec-mods" class="content-section" style="display:none;">
-            <h1>Mod-Datenbank</h1>
-            <div id="modUploadBox" class="glass-card" style="display:none; border: 1px solid var(--accent); margin-bottom: 20px;">
-                <h3>Neuen Mod hochladen (Modder & Admins)</h3>
-                <input id="modName" placeholder="Mod Name">
-                <input id="modVersion" placeholder="Version">
-                <input id="modType" placeholder="Art (z.B. Map, Traktor)">
-                <label>Datei (.zip):</label> <input type="file" id="modFile" accept=".zip">
-                <label>Bild:</label> <input type="file" id="modImg" accept="image/*">
-                <button id="uploadBtn" onclick="uploadMod()" class="btn-primary">Veröffentlichen</button>
-            </div>
-            <div id="modGallery" class="mod-grid"></div>
-        </section>
+/* Sidebar Styling */
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    padding: 24px;
+    position: fixed;
+    border-right: 1px solid #1e293b;
+    display: flex;
+    flex-direction: column;
+}
 
-        <section id="sec-admin" class="content-section" style="display:none;">
-            <h1>Mitglieder-Verwaltung</h1>
-            <div class="grid">
-                <div class="glass-card">
-                    <h3>Neues Mitglied</h3>
-                    <input id="newUser" placeholder="Username">
-                    <input id="newPass" type="password" placeholder="Passwort">
-                    <select id="newRole">
-                        <option value="user">User (Nur Download)</option>
-                        <option value="modder">Modder (Upload-Rechte)</option>
-                        <option value="admin">Admin (Alles)</option>
-                    </select>
-                    <button onclick="createUser()" class="btn-primary">Erstellen</button>
-                </div>
-                <div class="glass-card">
-                    <h3>Mitgliederliste</h3>
-                    <div id="userList"></div>
-                </div>
-            </div>
-        </section>
-    </main>
+.nav-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    vertical-align: middle;
+    margin-right: 12px;
+    object-fit: cover;
+}
 
-    <script type="module">
-        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+.side-nav {
+    margin-top: 30px;
+}
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
-            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
-            projectId: "farmerfuzzys-c32eb",
-            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
-            messagingSenderId: "842395157432",
-            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
-        };
+.side-nav button {
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: var(--transition);
+    margin-bottom: 4px;
+}
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
+.side-nav button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
 
-        let userRole = "user";
+.side-nav button.active {
+    background: var(--accent);
+    color: white;
+}
 
-        window.showSection = (id) => {
-            document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-            document.getElementById('sec-' + id).style.display = 'block';
-            if(id === 'mods') loadMods();
-            if(id === 'admin') loadUsers();
-        };
+/* Main Content Area */
+.main-content {
+    margin-left: var(--sidebar-width);
+    padding: 40px;
+    width: calc(100% - var(--sidebar-width));
+}
 
-        onAuthStateChanged(auth, async user => {
-            if (!user) { location.href = "index.html"; return; }
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
-                const data = snap.data();
-                userRole = data.role;
-                document.getElementById('welcomeText').innerText = `Hallo, ${data.username}!`;
-                if (userRole === "admin") document.getElementById('adminLinks').style.display = "block";
-                if (userRole === "admin" || userRole === "modder") document.getElementById('modUploadBox').style.display = "block";
-            }
-        });
+/* Cards & Grid */
+.glass-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px); /* Moderner Blur-Effekt */
+    -webkit-backdrop-filter: blur(12px);
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
 
-        // MOD LOGIK
-        window.uploadMod = async () => {
-            const name = document.getElementById('modName').value;
-            const file = document.getElementById('modFile').files[0];
-            const img = document.getElementById('modImg').files[0];
-            if(!name || !file) return alert("Name und Datei fehlen!");
-            
-            const btn = document.getElementById('uploadBtn');
-            btn.innerText = "Hochladen..."; btn.disabled = true;
+.mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+    margin-top: 20px;
+}
 
-            try {
-                const fileRefPath = `mods/${Date.now()}_${file.name}`;
-                const fileRef = ref(storage, fileRefPath);
-                await uploadBytes(fileRef, file);
-                const fileUrl = await getDownloadURL(fileRef);
+.mod-card {
+    background: var(--card-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
 
-                let imgUrl = "https://via.placeholder.com/150";
-                let imgRefPath = "";
-                if(img) {
-                    imgRefPath = `images/${Date.now()}_${img.name}`;
-                    const imgRef = ref(storage, imgRefPath);
-                    await uploadBytes(imgRef, img);
-                    imgUrl = await getDownloadURL(imgRef);
-                }
+.mod-card:hover {
+    transform: translateY(-5px);
+}
 
-                await addDoc(collection(db, "mods"), {
-                    name, fileUrl, imgUrl, fileRefPath, imgRefPath,
-                    version: document.getElementById('modVersion').value || "1.0",
-                    type: document.getElementById('modType').value || "Mod"
-                });
-                alert("Erfolgreich!"); location.reload();
-            } catch (e) { alert(e.message); btn.innerText = "Fehler"; btn.disabled = false; }
-        };
+.mod-card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
 
-        async function loadMods() {
-            const snap = await getDocs(collection(db, "mods"));
-            const gallery = document.getElementById('modGallery');
-            gallery.innerHTML = "";
-            snap.forEach(mDoc => {
-                const m = mDoc.data();
-                gallery.innerHTML += `
-                    <div class="mod-card">
-                        <img src="${m.imgUrl}">
-                        <div class="mod-info">
-                            <h4>${m.name}</h4>
-                            <p>${m.type} | v${m.version}</p>
-                            <a href="${m.fileUrl}" target="_blank" class="download-btn">Download</a>
-                            ${userRole === 'admin' ? `<button onclick="deleteMod('${mDoc.id}','${m.fileRefPath}','${m.imgRefPath}')" class="btn-danger">Löschen</button>` : ''}
-                        </div>
-                    </div>`;
-            });
-        }
+.mod-info {
+    padding: 18px;
+}
 
-        window.deleteMod = async (id, fPath, iPath) => {
-            if(!confirm("Wirklich löschen?")) return;
-            await deleteDoc(doc(db, "mods", id));
-            if(fPath) await deleteObject(ref(storage, fPath));
-            if(iPath) await deleteObject(ref(storage, iPath));
-            loadMods();
-        };
+.mod-info h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+}
 
-        // ADMIN NUTZER LOGIK
-        window.createUser = async () => {
-            const n = document.getElementById('newUser').value;
-            const p = document.getElementById('newPass').value;
-            const r = document.getElementById('newRole').value;
-            const tempApp = initializeApp(firebaseConfig, "Temp");
-            const tempAuth = getAuth(tempApp);
-            try {
-                const c = await createUserWithEmailAndPassword(tempAuth, n.toLowerCase() + "@farmerfuzzys.local", p);
-                await setDoc(doc(db, "users", c.user.uid), { username: n, role: r });
-                await signOut(tempAuth); await deleteApp(tempApp);
-                alert("Nutzer erstellt!"); loadUsers();
-            } catch (e) { alert(e.message); }
-        };
+/* Buttons & Inputs */
+.btn-primary, .download-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    transition: var(--transition);
+}
 
-        async function loadUsers() {
-            const snap = await getDocs(collection(db, "users"));
-            const list = document.getElementById('userList');
-            list.innerHTML = "";
-            snap.forEach(uDoc => {
-                const u = uDoc.data();
-                list.innerHTML += `<div class="user-item"><span>${u.username} (${u.role})</span> <button onclick="deleteUser('${uDoc.id}')" class="btn-danger">X</button></div>`;
-            });
-        }
+.btn-primary:hover, .download-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
 
-        window.deleteUser = async (id) => { if(confirm("Löschen?")) { await deleteDoc(doc(db, "users", id)); loadUsers(); } };
-        window.logout = () => signOut(auth);
-    </script>
-</body>
-</html>
+.btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-danger:hover {
+    background: var(--danger);
+    color: white;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 16px 0;
+    background: #020617;
+    border: 1px solid #334155;
+    color: white;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus, select:focus {
+    border-color: var(--accent);
+}
