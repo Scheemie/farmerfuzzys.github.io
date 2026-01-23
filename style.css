@@ -9,18 +9,19 @@
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', sans-serif;
     background: var(--main);
     color: var(--text);
     min-height: 100vh;
 }
 
-/* Login-Zentrierung */
+/* Zentrierung für Login (index.html) */
 .login-container {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    width: 100%;
 }
 
 .login-card {
@@ -34,32 +35,28 @@ body {
     backdrop-filter: blur(10px);
 }
 
-/* Dashboard Layout */
+/* Layout für Dashboard (dashboard.html) */
 .sidebar {
     width: 240px;
     height: 100vh;
     background: var(--sidebar);
     padding: 20px;
     position: fixed;
+    left: 0;
+    top: 0;
     border-right: 1px solid #1e293b;
 }
 
 .main-content {
-    margin-left: 280px;
+    margin-left: 280px; /* Sidebar + Abstand */
     padding: 40px;
 }
 
-.content-section {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-/* Mod-Karten (Modhoster Style) */
+/* Mod-Grid (Modhoster Style) */
 .mod-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 25px;
-    margin-top: 20px;
 }
 
 .mod-card {
@@ -68,6 +65,8 @@ body {
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.05);
     transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
 }
 
 .mod-card:hover {
@@ -83,10 +82,13 @@ body {
 
 .mod-info {
     padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
 
-.mod-info h4 { margin: 0 0 10px 0; font-size: 1.2rem; }
-.mod-desc-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; height: 40px; overflow: hidden; }
+.mod-info h4 { margin: 0 0 10px 0; }
+.mod-desc-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; flex-grow: 1; }
 
 /* Buttons & Inputs */
 .btn-primary {
@@ -96,7 +98,18 @@ body {
     padding: 12px;
     border-radius: 8px;
     cursor: pointer;
+    font-weight: bold;
     width: 100%;
+}
+
+.download-btn {
+    display: block;
+    background: var(--accent);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    text-decoration: none;
+    border-radius: 6px;
     font-weight: bold;
 }
 
@@ -110,3 +123,5 @@ input, textarea, select {
     border-radius: 6px;
     box-sizing: border-box;
 }
+
+textarea { height: 80px; resize: vertical; }
