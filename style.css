@@ -1,16 +1,94 @@
-:root { --sidebar: #020617; --main: #0f172a; --accent: #10b981; --text: #f8fafc; --danger: #ef4444; }
-body { margin: 0; display: flex; font-family: 'Segoe UI', sans-serif; background: var(--main); color: var(--text); }
-.sidebar { width: 240px; height: 100vh; background: var(--sidebar); padding: 20px; position: fixed; border-right: 1px solid #1e293b; }
-.main-content { margin-left: 280px; padding: 40px; width: 100%; }
-.nav-logo { width: 40px; border-radius: 50%; vertical-align: middle; margin-right: 10px; }
-.side-nav button { width: 100%; padding: 12px; background: none; color: white; border: none; text-align: left; cursor: pointer; border-radius: 8px; }
-.side-nav button:hover { background: #1e293b; }
-.glass-card { background: rgba(30, 41, 59, 0.5); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
-.mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-.mod-card { background: #1e293b; border-radius: 12px; overflow: hidden; }
-.mod-card img { width: 100%; height: 150px; object-fit: cover; }
-.mod-info { padding: 15px; }
-.btn-primary { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
-.btn-danger { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-.download-btn { display: block; background: var(--accent); color: white; text-align: center; text-decoration: none; padding: 10px; border-radius: 6px; margin: 10px 0; }
-input, select { width: 100%; padding: 10px; margin: 10px 0; background: #020617; border: 1px solid #334155; color: white; border-radius: 6px; }
+:root {
+    --sidebar: #020617;
+    --main: #0f172a;
+    --accent: #10b981;
+    --text: #f8fafc;
+    --danger: #ef4444;
+    --card-bg: rgba(30, 41, 59, 0.7);
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background: var(--main);
+    color: var(--text);
+    display: flex;
+    justify-content: center; /* Zentriert den Inhalt horizontal */
+    min-height: 100vh;
+}
+
+/* Sidebar bleibt links fixiert */
+.sidebar {
+    width: 240px;
+    height: 100vh;
+    background: var(--sidebar);
+    padding: 20px;
+    position: fixed;
+    left: 0;
+    border-right: 1px solid #1e293b;
+    z-index: 100;
+}
+
+/* Hauptinhalt wird zentriert */
+.main-content {
+    margin-left: 240px; /* Platz für Sidebar */
+    padding: 40px;
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Zentriert die Sektionen */
+}
+
+.content-section {
+    width: 100%;
+    text-align: center;
+}
+
+/* Mod-Karten im Modhoster-Stil */
+.mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    width: 100%;
+    margin-top: 30px;
+}
+
+.mod-card {
+    background: var(--card-bg);
+    border-radius: 15px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: transform 0.3s ease;
+    text-align: left;
+}
+
+.mod-card:hover {
+    transform: translateY(-10px);
+    border-color: var(--accent);
+}
+
+.mod-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+.mod-info {
+    padding: 20px;
+}
+
+.mod-info h4 { margin: 0 0 10px 0; font-size: 1.2rem; }
+.mod-description { color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; }
+
+.download-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    width: calc(100% - 40px);
+}
