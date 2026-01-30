@@ -2,55 +2,57 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>FarmerFuzzys Dashboard</title>
+    <title>Control Center | FarmerFuzzys</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <aside class="sidebar">
+    <nav class="sidebar">
         <img src="Farmerfuzzys_logo.jpg">
-        <nav class="side-nav">
-            <button onclick="showSection('profile')">👤 Profil</button>
-            <div id="adminLinks" style="display:none;">
-                <button onclick="showSection('admin')">⚙️ Mitglieder</button>
-            </div>
-            <button id="nav-alarm" onclick="showSection('alarm')" style="display:none; color:var(--danger);">🚨 Alarm Display</button>
-            <button onclick="logout()" style="margin-top:auto;">🚪 Abmelden</button>
-        </nav>
-    </aside>
+        <button class="nav-link" onclick="showSection('profile')">Profil</button>
+        <div id="adminArea" style="display:none;">
+            <button class="nav-link" onclick="showSection('admin')">Mitglieder</button>
+        </div>
+        <button id="nav-alarm" class="nav-link" onclick="showSection('alarm')" style="display:none; color:var(--danger);">Alarm Display</button>
+        <button class="nav-link" onclick="logout()" style="margin-top: auto;">Logout</button>
+    </nav>
 
-    <main class="main-content">
+    <main class="main-area">
         <section id="sec-profile" class="content-section">
-            <h1 id="welcomeText">Willkommen</h1>
-            <div class="card" style="max-width: 450px;">
-                <h3>Anzeigename ändern</h3>
-                <input id="changeName" placeholder="Neuer Name">
-                <button onclick="updateProfile()" class="btn-primary">Speichern</button>
+            <h1>System / Profil</h1>
+            <div class="glass-card" style="max-width: 500px;">
+                <h3 id="welcomeText" style="margin-bottom: 20px;">Initialisiere...</h3>
+                <input id="changeName" placeholder="Neuer Anzeigename">
+                <button onclick="updateProfile()" class="action-btn">Update</button>
             </div>
         </section>
 
         <section id="sec-admin" class="content-section" style="display:none;">
-            <h1>Mitgliederverwaltung</h1>
-            <div class="card">
-                <h3>Neuen Benutzer anlegen</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <input id="newU" placeholder="Benutzername">
+            <h1>Admin / Management</h1>
+            <div class="glass-card">
+                <h3 style="margin-bottom: 20px;">Neuer Datenbankeintrag</h3>
+                <div style="display: flex; gap: 15px;">
+                    <input id="newU" placeholder="Username">
                     <input id="newP" type="password" placeholder="Passwort">
                 </div>
-                <div style="margin: 15px 0; display: flex; gap: 20px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px;">
-                    <label><input type="checkbox" class="r-check" value="Admin"> Admin</label>
-                    <label><input type="checkbox" class="r-check" value="Modder"> Modder</label>
-                    <label><input type="checkbox" class="r-check" value="AD"> Alarm Display</label>
+                <div style="margin: 20px 0; display: flex; gap: 20px;">
+                    <label><input type="checkbox" class="role-sel" value="Admin"> Admin</label>
+                    <label><input type="checkbox" class="role-sel" value="AD"> Alarm Display</label>
                 </div>
-                <button onclick="addUser()" class="btn-primary">Benutzer erstellen</button>
+                <button onclick="addUser()" class="action-btn">User Registrieren</button>
             </div>
 
-            <h3 style="margin-top: 40px;">Registrierte Mitglieder</h3>
-            <div id="userList"></div>
+            <div class="glass-card">
+                <h3>Mitglieder Verzeichnis</h3>
+                <div id="userTable" style="margin-top: 20px;"></div>
+            </div>
         </section>
 
         <section id="sec-alarm" class="content-section" style="display:none;">
-            <h1>🚨 Alarm Monitor</h1>
-            <div class="card">Hier werden Alarme für das Display verwaltet.</div>
+            <h1>System / Alarm</h1>
+            <div class="glass-card">
+                <input id="alarmMsg" placeholder="Alarm Nachricht eingeben...">
+                <button onclick="sendAlarm()" class="action-btn" style="background: var(--danger); color: white;">Alarm Auslösen</button>
+            </div>
         </section>
     </main>
 
@@ -74,7 +76,7 @@
         window.showSection = (id) => {
             document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
             document.getElementById('sec-' + id).style.display = 'block';
-            if(id === 'admin') loadUsers();
+            if(id === 'admin') renderUsers();
         };
 
         onAuthStateChanged(auth, async user => {
@@ -83,8 +85,8 @@
             if (snap.exists()) {
                 const data = snap.data();
                 const roles = data.role || [];
-                document.getElementById('welcomeText').innerText = "Hallo, " + (data.username || "Farmer");
-                if (roles.includes("Admin")) document.getElementById('adminLinks').style.display = "block";
+                document.getElementById('welcomeText').innerText = "Status: Online | User: " + (data.username || "Unknown");
+                if (roles.includes("Admin")) document.getElementById('adminArea').style.display = "block";
                 if (roles.includes("AD")) document.getElementById('nav-alarm').style.display = "block";
             }
         });
@@ -92,44 +94,37 @@
         window.addUser = async () => {
             const u = document.getElementById('newU').value.trim();
             const p = document.getElementById('newP').value;
-            const r = Array.from(document.querySelectorAll('.r-check:checked')).map(c => c.value);
-            
-            if(!u || !p) return alert("Bitte Name und Passwort eingeben!");
+            const r = Array.from(document.querySelectorAll('.role-sel:checked')).map(c => c.value);
+            if(!u || !p) return;
 
-            const tApp = initializeApp(firebaseConfig, "Secondary");
+            const tApp = initializeApp(firebaseConfig, "Temp");
             try {
                 const res = await createUserWithEmailAndPassword(getAuth(tApp), u.toLowerCase() + "@farmerfuzzys.local", p);
                 await setDoc(doc(db, "users", res.user.uid), { username: u, role: r });
                 await deleteApp(tApp);
-                alert("User " + u + " erfolgreich erstellt!");
-                loadUsers();
+                alert("Erfolgreich angelegt.");
+                renderUsers();
             } catch(e) { alert("Fehler: " + e.message); }
         };
 
-        window.deleteUser = async (uid, name) => {
-            if(confirm("Möchtest du " + name + " wirklich löschen? (Nur Datenbank-Eintrag)")) {
-                await deleteDoc(doc(db, "users", uid));
-                loadUsers();
+        window.removeUser = async (id, name) => {
+            if(confirm("Eintrag " + name + " löschen?")) {
+                await deleteDoc(doc(db, "users", id));
+                renderUsers();
             }
         };
 
-        async function loadUsers() {
-            const list = document.getElementById('userList');
-            list.innerHTML = "<p>Lade Mitglieder...</p>";
+        async function renderUsers() {
+            const container = document.getElementById('userTable');
+            container.innerHTML = "Abfrage läuft...";
             const snap = await getDocs(collection(db, "users"));
-            list.innerHTML = "";
+            container.innerHTML = "";
             snap.forEach(d => {
                 const u = d.data();
-                const roles = u.role || [];
-                list.innerHTML += `
-                    <div class="user-item">
-                        <div class="user-info">
-                            <b>${u.username}</b> 
-                            ${roles.map(r => `<span class="badge">${r}</span>`).join("")}
-                        </div>
-                        <div class="user-actions">
-                            <button class="btn-delete" onclick="deleteUser('${d.id}', '${u.username}')">Löschen</button>
-                        </div>
+                container.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid var(--border-color);">
+                        <span>${u.username} <small style="color:var(--accent-color)">[${u.role.join(", ")}]</small></span>
+                        <button class="delete-btn" onclick="removeUser('${d.id}', '${u.username}')">Löschen</button>
                     </div>`;
             });
         }
