@@ -48,8 +48,8 @@
             </div>
         </section>
 
-        <section id="sec-mods" class="content-section" style="display:none;"><h1>Mods</h1><p>Mod-Galerie folgt...</p></section>
-        <section id="sec-alarm" class="content-section" style="display:none;"><h1>Alarm Monitor</h1><div id="qualsList"></div></section>
+        <section id="sec-mods" class="content-section" style="display:none;"><h1>Mods</h1><p>Galerie aktiv</p></section>
+        <section id="sec-alarm" class="content-section" style="display:none;"><h1>Alarm Monitor</h1></section>
     </main>
 
     <script type="module">
@@ -81,10 +81,16 @@
             const snap = await getDoc(doc(db, "users", user.uid));
             if (snap.exists()) {
                 const data = snap.data();
-                const roles = data.roles || [];
+                // WICHTIG: Wir nutzen 'role' wie in deinem Screenshot
+                const roles = data.role || [];
                 document.getElementById('welcomeText').innerText = "Willkommen, " + (data.username || "Mitglied");
-                if (roles.includes("Admin")) document.getElementById('adminLinks').style.display = "block";
-                if (roles.includes("AD")) document.getElementById('nav-alarm').style.display = "block";
+                
+                if (roles.includes("Admin")) {
+                    document.getElementById('adminLinks').style.display = "block";
+                }
+                if (roles.includes("AD")) {
+                    document.getElementById('nav-alarm').style.display = "block";
+                }
             }
         });
 
@@ -93,7 +99,7 @@
             if(!n) return alert("Bitte Name eingeben");
             try {
                 await updateDoc(doc(db, "users", auth.currentUser.uid), { username: n });
-                alert("Erfolgreich geändert!");
+                alert("Name geändert!");
                 location.reload();
             } catch(e) { alert("Fehler: " + e.message); }
         };
@@ -102,12 +108,12 @@
             const u = document.getElementById('newU').value.trim();
             const p = document.getElementById('newP').value;
             const r = Array.from(document.querySelectorAll('.r-check:checked')).map(c => c.value);
-            if(!u || !p) return alert("Eingaben fehlen");
-
+            
             const tApp = initializeApp(firebaseConfig, "Secondary");
             try {
                 const res = await createUserWithEmailAndPassword(getAuth(tApp), u.toLowerCase() + "@farmerfuzzys.local", p);
-                await setDoc(doc(db, "users", res.user.uid), { username: u, roles: r });
+                // Wir speichern es als 'role', damit es zu deinem Screenshot passt
+                await setDoc(doc(db, "users", res.user.uid), { username: u, role: r });
                 await deleteApp(tApp);
                 alert("User erstellt!");
                 loadUsers();
@@ -116,13 +122,13 @@
 
         async function loadUsers() {
             const list = document.getElementById('userList');
-            list.innerHTML = "Lade...";
             const snap = await getDocs(collection(db, "users"));
             list.innerHTML = "";
             snap.forEach(d => {
                 const u = d.data();
+                const roles = u.role || [];
                 list.innerHTML += `<div style="padding:10px; border-bottom:1px solid #334155;">
-                    <strong>${u.username}</strong> ${(u.roles || []).map(r => `<span class="role-badge">${r}</span>`).join("")}
+                    <strong>${u.username}</strong> ${roles.map(r => `<span class="role-badge">${r}</span>`).join("")}
                 </div>`;
             });
         }
