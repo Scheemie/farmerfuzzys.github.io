@@ -99,3 +99,12 @@ input {
     color: white;
     border-radius: 8px;
 }
+.sidebar img {
+    width: 80px;      /* Festgelegte Breite */
+    height: 80px;     /* Festgelegte Höhe */
+    object-fit: cover; /* Verhindert Verzerrung */
+    border-radius: 50%;
+    display: block;
+    margin: 10px auto 20px;
+    border: 2px solid var(--accent);
+}
