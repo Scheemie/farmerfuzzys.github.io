@@ -2,22 +2,24 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>FarmerFuzzys | Login</title>
+    <title>FarmerFuzzys Login</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
-            <img src="Farmerfuzzys_logo.jpg" style="width: 80px; border-radius: 50%; margin-bottom: 15px;">
-            <h1>Willkommen</h1>
-            <input id="user" type="text" placeholder="Benutzername">
+            <img src="Farmerfuzzys_logo.jpg" style="width: 80px; border-radius: 50%; margin-bottom: 20px;">
+            <h1>Anmelden</h1>
+            <input id="user" type="text" placeholder="Username">
             <input id="pass" type="password" placeholder="Passwort">
-            <button onclick="login()" class="btn-primary">Anmelden</button>
+            <button onclick="login()" class="btn-primary">Login</button>
         </div>
     </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
         const firebaseConfig = {
             apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
             authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
@@ -28,11 +30,14 @@
         };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+
         window.login = async () => {
-            const u = document.getElementById('user').value.toLowerCase().trim() + "@farmerfuzzys.local";
-            const p = document.getElementById('pass').value;
-            try { await signInWithEmailAndPassword(auth, u, p); location.href="dashboard.html"; } 
-            catch (e) { alert("Login fehlgeschlagen!"); }
+            const email = document.getElementById('user').value.toLowerCase().trim() + "@farmerfuzzys.local";
+            const pass = document.getElementById('pass').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                location.href = "dashboard.html";
+            } catch (e) { alert("Fehler: " + e.message); }
         };
     </script>
 </body>
