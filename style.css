@@ -13,9 +13,34 @@ body {
     font-family: 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
-    display: flex;
     min-height: 100vh;
 }
+
+/* LOGIN ZENTRIERUNG */
+.login-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.login-card {
+    background: var(--nav-bg);
+    padding: 40px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* DASHBOARD LAYOUT */
+.dashboard-wrapper { display: flex; }
 
 .sidebar {
     width: var(--sb-width);
@@ -31,7 +56,6 @@ body {
     display: block; margin: 0 auto 20px; border: 2px solid var(--accent);
 }
 
-/* Fix für die Sidebar-Buttons */
 .side-nav button {
     width: 100%;
     background: transparent;
@@ -54,12 +78,12 @@ body {
 .main-content {
     margin-left: var(--sb-width);
     padding: 40px;
-    flex-grow: 1;
+    width: calc(100% - var(--sb-width));
 }
 
 .card {
     background: var(--card);
-    padding: 20px;
+    padding: 25px;
     border-radius: 12px;
     border: 1px solid #334155;
     margin-bottom: 20px;
@@ -74,6 +98,7 @@ body {
     width: 100%;
     font-weight: bold;
     cursor: pointer;
+    margin-top: 10px;
 }
 
 .role-badge {
@@ -83,15 +108,15 @@ body {
     border: 1px solid var(--accent);
     border-radius: 4px;
     font-size: 0.75rem;
-    margin-left: 5px;
+    margin: 3px;
 }
 
 input {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     margin: 10px 0;
     background: #0f172a;
     border: 1px solid #334155;
     color: white;
-    border-radius: 6px;
+    border-radius: 8px;
 }
