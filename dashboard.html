@@ -59,72 +59,122 @@
 
     <script type="module">
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
-            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
-            projectId: "farmerfuzzys-c32eb",
-            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
-            messagingSenderId: "842395157432",
-            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+const firebaseConfig = {
+    apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
+    authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
+    projectId: "farmerfuzzys-c32eb",
+    storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
+    messagingSenderId: "842395157432",
+    appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
+};
 
-        window.showSection = (id) => {
-            document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-            document.getElementById('sec-' + id).style.display = 'block';
-            if(id === 'admin') loadUsers();
-        };
+// Haupt-App
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-        onAuthStateChanged(auth, async user => {
-            if (!user) { location.href = "index.html"; return; }
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
-                const data = snap.data();
-                const roles = data.roles || [];
-                document.getElementById('welcomeText').innerText = "Hallo, " + data.username;
-                if (roles.includes("Admin")) document.getElementById('adminLinks').style.display = "block";
-                if (roles.includes("AD")) document.getElementById('nav-alarm').style.display = "block";
-            }
+window.showSection = (id) => {
+    document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+    const target = document.getElementById('sec-' + id);
+    if(target) target.style.display = 'block';
+    if(id === 'admin') loadUsers();
+};
+
+// AUTH CHECK & ROLLEN-LOGIK
+onAuthStateChanged(auth, async user => {
+    if (!user) { location.href = "index.html"; return; }
+    
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (snap.exists()) {
+        const data = snap.data();
+        // WICHTIG: Wir stellen sicher, dass roles immer ein Array ist
+        const roles = Array.isArray(data.roles) ? data.roles : [data.role]; 
+        
+        document.getElementById('welcomeText').innerText = "Hallo, " + (data.username || "User");
+
+        // Admin-Bereich einblenden
+        if (roles.includes("Admin")) {
+            const adminBtn = document.getElementById('adminLinks');
+            if(adminBtn) adminBtn.style.display = "block";
+        }
+        
+        // Alarm-Display einblenden
+        if (roles.includes("AD")) {
+            const alarmBtn = document.getElementById('nav-alarm');
+            if(alarmBtn) alarmBtn.style.display = "block";
+        }
+    }
+});
+
+// MITGLIED HINZUFÜGEN (Der Fix)
+window.addUser = async () => {
+    const u = document.getElementById('newU').value.trim();
+    const p = document.getElementById('newP').value;
+    const r = Array.from(document.querySelectorAll('.r-check:checked')).map(c => c.value);
+    
+    if(!u || !p) return alert("Bitte Username und Passwort angeben!");
+
+    // Wir erstellen eine temporäre Firebase-App, um den aktuellen Admin nicht auszuloggen!
+    const tempAppName = "TempApp_" + Date.now();
+    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    const tempAuth = getAuth(tempApp);
+
+    try {
+        const email = u.toLowerCase() + "@farmerfuzzys.local";
+        const res = await createUserWithEmailAndPassword(tempAuth, email, p);
+        
+        // In Firestore speichern
+        await setDoc(doc(db, "users", res.user.uid), {
+            username: u,
+            roles: r,
+            createdAt: new Date()
         });
 
-        window.updateProfile = async () => {
-            const n = document.getElementById('changeName').value;
-            if(!n) return;
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { username: n });
-            alert("Name aktualisiert!"); location.reload();
-        };
+        // Temp App löschen und aufräumen
+        await signOut(tempAuth);
+        await deleteApp(tempApp);
+        
+        alert(`Mitglied ${u} erfolgreich erstellt!`);
+        document.getElementById('newU').value = "";
+        document.getElementById('newP').value = "";
+        loadUsers();
+    } catch (e) {
+        alert("Fehler beim Erstellen: " + e.message);
+    }
+};
 
-        window.addUser = async () => {
-            const u = document.getElementById('newU').value;
-            const p = document.getElementById('newP').value;
-            const r = Array.from(document.querySelectorAll('.r-check:checked')).map(c => c.value);
-            const tApp = initializeApp(firebaseConfig, "Secondary");
-            try {
-                const res = await createUserWithEmailAndPassword(getAuth(tApp), u.toLowerCase() + "@farmerfuzzys.local", p);
-                await setDoc(doc(db, "users", res.user.uid), { username: u, roles: r });
-                await deleteApp(tApp);
-                alert("Erfolgreich!"); loadUsers();
-            } catch (e) { alert(e.message); }
-        };
-
-        async function loadUsers() {
-            const snap = await getDocs(collection(db, "users"));
-            const list = document.getElementById('userList');
-            list.innerHTML = "";
-            snap.forEach(d => {
-                const u = d.data();
-                list.innerHTML += `<div style="padding:10px; border-bottom:1px solid #334155;">
-                    ${u.username} ${(u.roles || []).map(r => `<span class="role-badge">${r}</span>`).join("")}
+// USER LISTE LADEN
+async function loadUsers() {
+    const list = document.getElementById('userList');
+    list.innerHTML = "Lade Mitglieder...";
+    try {
+        const snap = await getDocs(collection(db, "users"));
+        list.innerHTML = "";
+        snap.forEach(d => {
+            const u = d.data();
+            const roles = Array.isArray(u.roles) ? u.roles : [];
+            list.innerHTML += `
+                <div style="padding:15px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>${u.username}</strong><br>
+                        ${roles.map(r => `<span class="role-badge">${r}</span>`).join("")}
+                    </div>
+                    <button onclick="deleteMember('${d.id}')" style="background:none; border:none; color:red; cursor:pointer;">Löschen</button>
                 </div>`;
-            });
-        }
+        });
+    } catch (e) { list.innerHTML = "Fehler beim Laden."; }
+}
 
-        window.logout = () => signOut(auth);
+window.deleteMember = async (id) => {
+    if(!confirm("Mitglied wirklich löschen?")) return;
+    await deleteDoc(doc(db, "users", id));
+    loadUsers();
+};
+
+window.logout = () => { signOut(auth); location.href="index.html"; };
     </script>
 </body>
 </html>
