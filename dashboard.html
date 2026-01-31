@@ -1,66 +1,64 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Control Center</title>
+    <title>Dashboard | FarmerFuzzys</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <nav class="sidebar">
-        <img src="Farmerfuzzys_logo.jpg">
-        <button class="nav-link" onclick="showSection('home')">Startseite</button>
-        <button class="nav-link" onclick="showSection('profile')">Profil</button>
-        <div id="adminArea" style="display:none;">
-            <button class="nav-link" onclick="showSection('admin')">Mitglieder</button>
+        <div style="padding: 20px; text-align: center;">
+            <img src="Farmerfuzzys_logo.jpg" style="width:60px; border-radius:8px;">
         </div>
-        <button id="nav-alarm" class="nav-link" onclick="showSection('alarm')" style="display:none; color:var(--danger);">Alarm</button>
-        <button class="nav-link" onclick="logout()" style="margin-top:auto;">Logout</button>
+        <button class="nav-btn" onclick="openTab('home')">Startseite</button>
+        <button class="nav-btn" onclick="openTab('profile')">Profil Einstellungen</button>
+        <div id="admin-nav" style="display:none;">
+            <button class="nav-btn" onclick="openTab('admin')">Admin Management</button>
+        </div>
+        <button class="nav-btn" onclick="logout()" style="margin-top:auto;">Abmelden</button>
     </nav>
 
-    <main class="main-area">
-        <section id="sec-home" class="content-section">
-            <h1>Dashboard</h1>
-            <div class="hub-grid">
-                <div class="hub-card" onclick="showSection('profile')"><h3>Profil</h3><p>Einstellungen</p></div>
-                <div id="hub-admin" class="hub-card" onclick="showSection('admin')" style="display:none;"><h3>Management</h3><p>Mitglieder verwalten</p></div>
-                <div id="hub-alarm" class="hub-card" onclick="showSection('alarm')" style="display:none; border-color:var(--danger)"><h3>Alarm</h3><p>Display steuern</p></div>
+    <main class="main-content">
+        <section id="tab-home" class="tab-content">
+            <h1>Willkommen im Hub</h1>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;">
+                <div class="card" onclick="openTab('profile')" style="cursor:pointer;">
+                    <h3>Profil</h3>
+                    <p style="color:#8b949e;">Deinen Namen anpassen</p>
+                </div>
+                <div id="card-admin" class="card" onclick="openTab('admin')" style="display:none; cursor:pointer;">
+                    <h3>Management</h3>
+                    <p style="color:#8b949e;">Mitglieder verwalten</p>
+                </div>
             </div>
         </section>
 
-        <section id="sec-profile" class="content-section" style="display:none;">
+        <section id="tab-profile" class="tab-content" style="display:none;">
             <h1>Profil Einstellungen</h1>
-            <div class="glass-card" style="max-width: 450px;">
-                <h3 id="curName" style="color:var(--accent-color); margin-bottom:20px;">Lade...</h3>
-                <input id="changeName" placeholder="Neuer Anzeigename">
-                <button onclick="updateProfile()" class="action-btn">Name Speichern</button>
+            <div class="card" style="max-width: 400px;">
+                <p id="display-name" style="margin-bottom: 10px; font-weight: bold; color: var(--accent);">Lädt...</p>
+                <input id="new-name" placeholder="Neuer Anzeigename">
+                <button onclick="saveName()" class="btn-primary">Name speichern</button>
             </div>
         </section>
 
-        <section id="sec-admin" class="content-section" style="display:none;">
+        <section id="tab-admin" class="tab-content" style="display:none;">
             <h1>Admin Management</h1>
-            <div class="glass-card">
-                <h3>Mitglied hinzufügen</h3>
+            <div class="card">
+                <h3>Neues Mitglied</h3>
                 <div style="display:flex; gap:10px; margin-top:15px;">
-                    <input id="newU" placeholder="Name">
-                    <input id="newP" type="password" placeholder="Passwort">
+                    <input id="reg-user" placeholder="Name">
+                    <input id="reg-pass" type="password" placeholder="Passwort">
                 </div>
-                <div class="modern-checkbox-group">
-                    <label class="custom-check"><input type="checkbox" class="role-sel" value="Admin"><span class="check-tile">Admin</span></label>
-                    <label class="custom-check"><input type="checkbox" class="role-sel" value="AD"><span class="check-tile">Alarm</span></label>
+                <div class="role-grid">
+                    <div id="check-admin" class="role-item" onclick="this.classList.toggle('active')">Admin</div>
+                    <div id="check-ad" class="role-item" onclick="this.classList.toggle('active')">Alarm Display</div>
                 </div>
-                <button onclick="addUser()" class="action-btn">Registrieren</button>
+                <button onclick="registerUser()" class="btn-primary">Nutzer erstellen</button>
             </div>
-            <div class="glass-card">
+            <div class="card">
                 <h3>Mitgliederliste</h3>
-                <div id="userTable"></div>
-            </div>
-        </section>
-
-        <section id="sec-alarm" class="content-section" style="display:none;">
-            <h1>Alarm Management</h1>
-            <div class="glass-card">
-                <input id="alarmMsg" placeholder="Nachricht für Display...">
-                <button onclick="sendAlarm()" class="action-btn" style="background:var(--danger); color:white;">Alarm auslösen</button>
+                <div id="user-list"></div>
             </div>
         </section>
     </main>
@@ -68,7 +66,7 @@
     <script type="module">
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
@@ -82,63 +80,69 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.showSection = (id) => {
-            document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-            document.getElementById('sec-' + id).style.display = 'block';
-            if(id === 'admin') renderUsers();
+        window.openTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.getElementById('tab-' + id).style.display = 'block';
+            if(id === 'admin') loadUsers();
         };
 
         onAuthStateChanged(auth, async user => {
-            if (!user) { window.location.replace("index.html"); return; }
+            if(!user) { window.location.href = "index.html"; return; }
             const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
-                const data = snap.data();
-                const roles = data.role || [];
-                document.getElementById('curName').innerText = "User: " + (data.username || "Gast");
-                if (roles.includes("Admin")) {
-                    document.getElementById('adminArea').style.display = "block";
-                    document.getElementById('hub-admin').style.display = "block";
-                }
-                if (roles.includes("AD")) {
-                    document.getElementById('nav-alarm').style.display = "block";
-                    document.getElementById('hub-alarm').style.display = "block";
+            if(snap.exists()){
+                const d = snap.data();
+                document.getElementById('display-name').innerText = "Aktueller Name: " + (d.username || "Gast");
+                if(d.role && d.role.includes("Admin")) {
+                    document.getElementById('admin-nav').style.display = 'block';
+                    document.getElementById('card-admin').style.display = 'block';
                 }
             }
         });
 
-        window.updateProfile = async () => {
-            const n = document.getElementById('changeName').value.trim();
+        window.saveName = async () => {
+            const n = document.getElementById('new-name').value.trim();
             if(!n) return;
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { username: n });
-            alert("Name gespeichert!"); location.reload();
-        };
-
-        window.addUser = async () => {
-            const u = document.getElementById('newU').value.trim();
-            const p = document.getElementById('newP').value;
-            const r = Array.from(document.querySelectorAll('.role-sel:checked')).map(c => c.value);
-            const tApp = initializeApp(firebaseConfig, "Temp");
             try {
-                const res = await createUserWithEmailAndPassword(getAuth(tApp), u.toLowerCase() + "@farmerfuzzys.local", p);
-                await setDoc(doc(db, "users", res.user.uid), { username: u, role: r });
-                await deleteApp(tApp);
-                alert("Erfolg!"); renderUsers();
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { username: n });
+                alert("Erfolgreich!"); location.reload();
             } catch(e) { alert("Fehler: " + e.message); }
         };
 
-        window.removeUser = async (id, name) => {
-            if(confirm("Löschen?")) { await deleteDoc(doc(db, "users", id)); renderUsers(); }
+        window.registerUser = async () => {
+            const u = document.getElementById('reg-user').value.trim();
+            const p = document.getElementById('reg-pass').value;
+            const roles = [];
+            if(document.getElementById('check-admin').classList.contains('active')) roles.push("Admin");
+            if(document.getElementById('check-ad').classList.contains('active')) roles.push("AD");
+
+            const tempApp = initializeApp(firebaseConfig, "Temp");
+            try {
+                const res = await createUserWithEmailAndPassword(getAuth(tempApp), u.toLowerCase() + "@farmerfuzzys.local", p);
+                await setDoc(doc(db, "users", res.user.uid), { username: u, role: roles });
+                await deleteApp(tempApp);
+                alert("Nutzer angelegt!"); loadUsers();
+            } catch(e) { alert("Fehler: " + e.message); }
         };
 
-        async function renderUsers() {
-            const container = document.getElementById('userTable');
+        async function loadUsers() {
+            const list = document.getElementById('user-list');
             const snap = await getDocs(collection(db, "users"));
-            container.innerHTML = "";
+            list.innerHTML = "";
             snap.forEach(d => {
-                const u = d.data();
-                container.innerHTML += `<div class="user-row"><span>${u.username} <small style="color:var(--text-dim)">[${u.role.join(", ")}]</small></span><button class="delete-btn" onclick="removeUser('${d.id}', '${u.username}')">Entfernen</button></div>`;
+                const data = d.data();
+                list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border)">
+                    <span>${data.username} <small style="color:var(--accent)">[${data.role.join(", ")}]</small></span>
+                    <button onclick="deleteUser('${d.id}')" style="color:var(--danger); background:none; border:none; cursor:pointer;">Löschen</button>
+                </div>`;
             });
         }
+
+        window.deleteUser = async (id) => {
+            if(confirm("Wirklich löschen?")) {
+                await deleteDoc(doc(db, "users", id));
+                loadUsers();
+            }
+        };
 
         window.logout = () => signOut(auth);
     </script>
