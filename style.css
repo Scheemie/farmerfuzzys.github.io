@@ -1,42 +1,50 @@
-/* Moderne Checkbox-Kacheln */
+/* Login Zentrierung */
+.login-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    background: var(--bg-dark);
+}
+
+.login-card {
+    background: var(--panel-bg);
+    padding: 40px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+/* Moderne Rollen-Auswahl (Checkboxes) */
 .modern-checkbox-group {
     display: flex;
     gap: 15px;
     margin: 20px 0;
 }
 
-.custom-check { cursor: pointer; flex: 1; }
+.custom-check { cursor: pointer; flex: 1; position: relative; }
 .custom-check input { display: none; }
 
 .check-tile {
     display: block;
-    padding: 15px;
+    padding: 12px;
     text-align: center;
-    background: #0d1117;
+    background: rgba(255,255,255,0.03);
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--text-dim);
-    transition: 0.3s;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
+    transition: 0.3s;
 }
 
 .custom-check input:checked + .check-tile {
     border-color: var(--accent-color);
     color: var(--accent-color);
+    background: rgba(0, 242, 255, 0.1);
     box-shadow: 0 0 15px var(--accent-glow);
-    background: rgba(0, 242, 255, 0.05);
-}
-
-/* FIX: Namensänderung Button-Style */
-.action-btn {
-    background: var(--accent-color);
-    color: #000;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
-    width: 100%;
-    transition: 0.3s;
 }
