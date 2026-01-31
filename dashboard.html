@@ -8,6 +8,7 @@
 <body>
     <nav class="sidebar">
         <img src="Farmerfuzzys_logo.jpg">
+        <button class="nav-link" onclick="showSection('home')">Startseite</button>
         <button class="nav-link" onclick="showSection('profile')">Profil</button>
         <div id="adminArea" style="display:none;">
             <button class="nav-link" onclick="showSection('admin')">Mitglieder</button>
@@ -17,10 +18,28 @@
     </nav>
 
     <main class="main-area">
-        <section id="sec-profile" class="content-section">
+        <section id="sec-home" class="content-section">
+            <h1>System / Startseite</h1>
+            <div class="hub-grid">
+                <div class="hub-card" onclick="showSection('profile')">
+                    <h3>Profil</h3>
+                    <p>Persönliche Einstellungen</p>
+                </div>
+                <div id="hub-admin" class="hub-card" onclick="showSection('admin')" style="display:none;">
+                    <h3>Mitglieder</h3>
+                    <p>Benutzerverwaltung & Rechte</p>
+                </div>
+                <div id="hub-alarm" class="hub-card danger-card" onclick="showSection('alarm')" style="display:none;">
+                    <h3>Alarm Display</h3>
+                    <p>Systemweiten Alarm auslösen</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="sec-profile" class="content-section" style="display:none;">
             <h1>System / Profil</h1>
             <div class="glass-card" style="max-width: 500px;">
-                <h3 id="welcomeText" style="margin-bottom: 20px;">Initialisiere...</h3>
+                <h3 id="welcomeText" style="margin-bottom: 20px;">Lade...</h3>
                 <input id="changeName" placeholder="Neuer Anzeigename">
                 <button onclick="updateProfile()" class="action-btn">Update</button>
             </div>
@@ -29,7 +48,7 @@
         <section id="sec-admin" class="content-section" style="display:none;">
             <h1>Admin / Management</h1>
             <div class="glass-card">
-                <h3 style="margin-bottom: 20px;">Neuer Datenbankeintrag</h3>
+                <h3>Neuer Benutzer</h3>
                 <div style="display: flex; gap: 15px;">
                     <input id="newU" placeholder="Username">
                     <input id="newP" type="password" placeholder="Passwort">
@@ -38,12 +57,11 @@
                     <label><input type="checkbox" class="role-sel" value="Admin"> Admin</label>
                     <label><input type="checkbox" class="role-sel" value="AD"> Alarm Display</label>
                 </div>
-                <button onclick="addUser()" class="action-btn">User Registrieren</button>
+                <button onclick="addUser()" class="action-btn">Registrieren</button>
             </div>
-
             <div class="glass-card">
                 <h3>Mitglieder Verzeichnis</h3>
-                <div id="userTable" style="margin-top: 20px;"></div>
+                <div id="userTable"></div>
             </div>
         </section>
 
@@ -85,9 +103,15 @@
             if (snap.exists()) {
                 const data = snap.data();
                 const roles = data.role || [];
-                document.getElementById('welcomeText').innerText = "Status: Online | User: " + (data.username || "Unknown");
-                if (roles.includes("Admin")) document.getElementById('adminArea').style.display = "block";
-                if (roles.includes("AD")) document.getElementById('nav-alarm').style.display = "block";
+                document.getElementById('welcomeText').innerText = "User: " + (data.username || "Unknown");
+                if (roles.includes("Admin")) {
+                    document.getElementById('adminArea').style.display = "block";
+                    document.getElementById('hub-admin').style.display = "block";
+                }
+                if (roles.includes("AD")) {
+                    document.getElementById('nav-alarm').style.display = "block";
+                    document.getElementById('hub-alarm').style.display = "block";
+                }
             }
         });
 
@@ -96,36 +120,26 @@
             const p = document.getElementById('newP').value;
             const r = Array.from(document.querySelectorAll('.role-sel:checked')).map(c => c.value);
             if(!u || !p) return;
-
             const tApp = initializeApp(firebaseConfig, "Temp");
             try {
                 const res = await createUserWithEmailAndPassword(getAuth(tApp), u.toLowerCase() + "@farmerfuzzys.local", p);
                 await setDoc(doc(db, "users", res.user.uid), { username: u, role: r });
                 await deleteApp(tApp);
-                alert("Erfolgreich angelegt.");
-                renderUsers();
+                alert("User erstellt."); renderUsers();
             } catch(e) { alert("Fehler: " + e.message); }
         };
 
         window.removeUser = async (id, name) => {
-            if(confirm("Eintrag " + name + " löschen?")) {
-                await deleteDoc(doc(db, "users", id));
-                renderUsers();
-            }
+            if(confirm("Löschen?")) { await deleteDoc(doc(db, "users", id)); renderUsers(); }
         };
 
         async function renderUsers() {
             const container = document.getElementById('userTable');
-            container.innerHTML = "Abfrage läuft...";
             const snap = await getDocs(collection(db, "users"));
             container.innerHTML = "";
             snap.forEach(d => {
                 const u = d.data();
-                container.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid var(--border-color);">
-                        <span>${u.username} <small style="color:var(--accent-color)">[${u.role.join(", ")}]</small></span>
-                        <button class="delete-btn" onclick="removeUser('${d.id}', '${u.username}')">Löschen</button>
-                    </div>`;
+                container.innerHTML += `<div class="user-row"><span>${u.username} [${u.role.join(", ")}]</span><button class="delete-btn" onclick="removeUser('${d.id}', '${u.username}')">Löschen</button></div>`;
             });
         }
 
