@@ -1,149 +1,57 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Control Center | FarmerFuzzys</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <nav class="sidebar">
-        <img src="Farmerfuzzys_logo.jpg">
-        <button class="nav-link" onclick="showSection('home')">Startseite</button>
-        <button class="nav-link" onclick="showSection('profile')">Profil</button>
-        <div id="adminArea" style="display:none;">
-            <button class="nav-link" onclick="showSection('admin')">Mitglieder</button>
+<main class="main-area">
+    <section id="sec-home" class="content-section">
+        <h1>Dashboard</h1>
+        <div class="hub-grid">
+            <div class="hub-card" onclick="showSection('profile')">
+                <h3>Profil</h3>
+                <p>Einstellungen anpassen</p>
+            </div>
+            <div id="hub-admin" class="hub-card" onclick="showSection('admin')" style="display:none;">
+                <h3>Management</h3>
+                <button class="badge-btn">Admin</button>
+            </div>
+            <div id="hub-alarm" class="hub-card danger-card" onclick="showSection('alarm')" style="display:none;">
+                <h3>Alarm</h3>
+                <p>Display steuern</p>
+            </div>
         </div>
-        <button id="nav-alarm" class="nav-link" onclick="showSection('alarm')" style="display:none; color:var(--danger);">Alarm Display</button>
-        <button class="nav-link" onclick="logout()" style="margin-top: auto;">Logout</button>
-    </nav>
+    </section>
 
-    <main class="main-area">
-        <section id="sec-home" class="content-section">
-            <h1>System / Startseite</h1>
-            <div class="hub-grid">
-                <div class="hub-card" onclick="showSection('profile')">
-                    <h3>Profil</h3>
-                    <p>Persönliche Einstellungen</p>
-                </div>
-                <div id="hub-admin" class="hub-card" onclick="showSection('admin')" style="display:none;">
-                    <h3>Mitglieder</h3>
-                    <p>Benutzerverwaltung & Rechte</p>
-                </div>
-                <div id="hub-alarm" class="hub-card danger-card" onclick="showSection('alarm')" style="display:none;">
-                    <h3>Alarm Display</h3>
-                    <p>Systemweiten Alarm auslösen</p>
-                </div>
+    <section id="sec-profile" class="content-section" style="display:none;">
+        <h1>Profil Einstellungen</h1>
+        <div class="glass-card" style="max-width: 500px;">
+            <p id="welcomeText" style="color: var(--accent-color); margin-bottom: 10px; font-weight: bold;">Lade Profil...</p>
+            <input id="changeName" placeholder="Neuer Anzeigename">
+            <button onclick="updateProfile()" class="action-btn">Name Speichern</button>
+        </div>
+    </section>
+
+    <section id="sec-admin" class="content-section" style="display:none;">
+        <h1>Admin Management</h1>
+        <div class="glass-card">
+            <h3>Mitglied hinzufügen</h3>
+            <div style="display: flex; gap: 15px; margin-top: 15px;">
+                <input id="newU" placeholder="Benutzername">
+                <input id="newP" type="password" placeholder="Passwort">
             </div>
-        </section>
-
-        <section id="sec-profile" class="content-section" style="display:none;">
-            <h1>System / Profil</h1>
-            <div class="glass-card" style="max-width: 500px;">
-                <h3 id="welcomeText" style="margin-bottom: 20px;">Lade...</h3>
-                <input id="changeName" placeholder="Neuer Anzeigename">
-                <button onclick="updateProfile()" class="action-btn">Update</button>
+            
+            <div class="modern-checkbox-group">
+                <label class="custom-check">
+                    <input type="checkbox" class="role-sel" value="Admin">
+                    <span class="check-tile">Admin-Rang</span>
+                </label>
+                <label class="custom-check">
+                    <input type="checkbox" class="role-sel" value="AD">
+                    <span class="check-tile">Alarm-Display</span>
+                </label>
             </div>
-        </section>
+            
+            <button onclick="addUser()" class="action-btn">Registrieren</button>
+        </div>
 
-        <section id="sec-admin" class="content-section" style="display:none;">
-            <h1>Admin / Management</h1>
-            <div class="glass-card">
-                <h3>Neuer Benutzer</h3>
-                <div style="display: flex; gap: 15px;">
-                    <input id="newU" placeholder="Username">
-                    <input id="newP" type="password" placeholder="Passwort">
-                </div>
-                <div style="margin: 20px 0; display: flex; gap: 20px;">
-                    <label><input type="checkbox" class="role-sel" value="Admin"> Admin</label>
-                    <label><input type="checkbox" class="role-sel" value="AD"> Alarm Display</label>
-                </div>
-                <button onclick="addUser()" class="action-btn">Registrieren</button>
-            </div>
-            <div class="glass-card">
-                <h3>Mitglieder Verzeichnis</h3>
-                <div id="userTable"></div>
-            </div>
-        </section>
-
-        <section id="sec-alarm" class="content-section" style="display:none;">
-            <h1>System / Alarm</h1>
-            <div class="glass-card">
-                <input id="alarmMsg" placeholder="Alarm Nachricht eingeben...">
-                <button onclick="sendAlarm()" class="action-btn" style="background: var(--danger); color: white;">Alarm Auslösen</button>
-            </div>
-        </section>
-    </main>
-
-    <script type="module">
-        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
-            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
-            projectId: "farmerfuzzys-c32eb",
-            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
-            messagingSenderId: "842395157432",
-            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        window.showSection = (id) => {
-            document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-            document.getElementById('sec-' + id).style.display = 'block';
-            if(id === 'admin') renderUsers();
-        };
-
-        onAuthStateChanged(auth, async user => {
-            if (!user) { window.location.replace("index.html"); return; }
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if (snap.exists()) {
-                const data = snap.data();
-                const roles = data.role || [];
-                document.getElementById('welcomeText').innerText = "User: " + (data.username || "Unknown");
-                if (roles.includes("Admin")) {
-                    document.getElementById('adminArea').style.display = "block";
-                    document.getElementById('hub-admin').style.display = "block";
-                }
-                if (roles.includes("AD")) {
-                    document.getElementById('nav-alarm').style.display = "block";
-                    document.getElementById('hub-alarm').style.display = "block";
-                }
-            }
-        });
-
-        window.addUser = async () => {
-            const u = document.getElementById('newU').value.trim();
-            const p = document.getElementById('newP').value;
-            const r = Array.from(document.querySelectorAll('.role-sel:checked')).map(c => c.value);
-            if(!u || !p) return;
-            const tApp = initializeApp(firebaseConfig, "Temp");
-            try {
-                const res = await createUserWithEmailAndPassword(getAuth(tApp), u.toLowerCase() + "@farmerfuzzys.local", p);
-                await setDoc(doc(db, "users", res.user.uid), { username: u, role: r });
-                await deleteApp(tApp);
-                alert("User erstellt."); renderUsers();
-            } catch(e) { alert("Fehler: " + e.message); }
-        };
-
-        window.removeUser = async (id, name) => {
-            if(confirm("Löschen?")) { await deleteDoc(doc(db, "users", id)); renderUsers(); }
-        };
-
-        async function renderUsers() {
-            const container = document.getElementById('userTable');
-            const snap = await getDocs(collection(db, "users"));
-            container.innerHTML = "";
-            snap.forEach(d => {
-                const u = d.data();
-                container.innerHTML += `<div class="user-row"><span>${u.username} [${u.role.join(", ")}]</span><button class="delete-btn" onclick="removeUser('${d.id}', '${u.username}')">Löschen</button></div>`;
-            });
-        }
-
-        window.logout = () => signOut(auth);
-    </script>
-</body>
-</html>
+        <div class="glass-card">
+            <h3>Mitglieder Verzeichnis</h3>
+            <div id="userTable"></div>
+        </div>
+    </section>
+</main>
