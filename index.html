@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
     <meta charset="UTF-8">
     <title>Login | FarmerFuzzys</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="login-body">
+<body class="login-page">
     <div class="login-card">
         <img src="Farmerfuzzys_logo.jpg">
-        <h2 style="margin-bottom: 20px; font-weight: 300;">Authorized Access</h2>
-        <input id="user" type="text" placeholder="Nutzername">
+        <h2 style="margin-bottom: 20px;">Authorized Access</h2>
+        <input id="email" type="text" placeholder="Benutzername">
         <input id="pass" type="password" placeholder="Passwort">
-        <button onclick="login()" class="action-btn">Login</button>
+        <button onclick="doLogin()" class="btn-primary">Einloggen</button>
     </div>
 
     <script type="module">
@@ -29,13 +29,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        window.login = async () => {
-            const u = document.getElementById('user').value.toLowerCase().trim();
-            const p = document.getElementById('pass').value;
+        window.doLogin = async () => {
+            const user = document.getElementById('email').value.trim().toLowerCase();
+            const pass = document.getElementById('pass').value;
             try {
-                await signInWithEmailAndPassword(auth, u + "@farmerfuzzys.local", p);
-                window.location.replace("dashboard.html");
-            } catch (e) { alert("Zugriff verweigert."); }
+                await signInWithEmailAndPassword(auth, user + "@farmerfuzzys.local", pass);
+                window.location.href = "dashboard.html";
+            } catch (e) { alert("Login fehlgeschlagen!"); }
         };
     </script>
 </body>
