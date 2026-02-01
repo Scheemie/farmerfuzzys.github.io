@@ -1,118 +1,49 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard | FarmerFuzzys</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <nav class="sidebar">
-        <div style="padding: 20px; text-align: center;"><img src="Farmerfuzzys_logo.jpg" style="width:60px; border-radius:8px;"></div>
-        <button class="nav-btn" onclick="openTab('home')">Startseite</button>
-        <button class="nav-btn" onclick="openTab('profile')">Profil Einstellungen</button>
-        <div id="admin-nav" style="display:none;"><button class="nav-btn" onclick="openTab('admin')">Admin Management</button></div>
-        <div id="alarm-admin-nav" style="display:none;"><button class="nav-btn" onclick="openTab('alarm')" style="color:var(--danger)">Alarm Steuerung</button></div>
-        <button class="nav-btn" onclick="logout()" style="margin-top:auto;">Abmelden</button>
-    </nav>
+<script type="module">
+    // ... Firebase Importe (auth, db etc.) ...
 
-    <main class="main-content">
-        <section id="tab-home" class="tab-content">
-            <h1>Willkommen zurück</h1>
-            <p id="welcome-msg" style="margin-top:10px; color:var(--accent);"></p>
-        </section>
-
-        <section id="tab-admin" class="tab-content" style="display:none;">
-            <h1>Admin Management</h1>
-            <div class="card">
-                <h3>Mitglied hinzufügen</h3>
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <input id="reg-user" placeholder="Name">
-                    <input id="reg-pass" type="password" placeholder="Passwort">
-                </div>
-                <button onclick="registerUser()" class="btn-primary">Anlegen</button>
-            </div>
-            <div class="card">
-                <h3>Mitglieder & Rollen</h3>
-                <div id="user-list"></div>
-            </div>
-        </section>
-
-        <section id="tab-alarm" class="tab-content" style="display:none;">
-            <h1>Alarm Display Steuerung</h1>
-            <div class="card">
-                <input id="einsatz-ort" placeholder="Einsatzort">
-                <input id="einsatz-grund" placeholder="Einsatzgrund">
-                <button onclick="triggerAlarm()" class="btn-primary" style="background:var(--danger); color:white;">Alarm auslösen</button>
-            </div>
-        </section>
-    </main>
-
-    <script type="module">
-        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
-            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
-            projectId: "farmerfuzzys-c32eb",
-            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
-            messagingSenderId: "842395157432",
-            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        window.openTab = (id) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-            document.getElementById('tab-' + id).style.display = 'block';
-            if(id === 'admin') loadUsers();
-        };
-
-        onAuthStateChanged(auth, async user => {
-            if(!user) { window.location.href = "index.html"; return; }
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if(snap.exists()){
-                const d = snap.data();
-                const roles = d.role || [];
-                if(roles.includes("Gesperrt")) {
-                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:100px;'>KONTO GESPERRT</h1>";
-                    return;
-                }
-                document.getElementById('welcome-msg').innerText = "Angemeldet als: " + d.username;
-                if(roles.includes("Admin")) document.getElementById('admin-nav').style.display = 'block';
-                if(roles.includes("Admin") || roles.includes("Alarm Display Admin")) document.getElementById('alarm-admin-nav').style.display = 'block';
-            }
+    // FUNKTION: Mitglieder laden & Rollen-Leuchten
+    async function loadUsers() {
+        const list = document.getElementById('user-list');
+        const snap = await getDocs(collection(db, "users"));
+        list.innerHTML = "";
+        
+        snap.forEach(d => {
+            const u = d.data();
+            const roles = u.role || [];
+            
+            list.innerHTML += `
+                <div class="user-row">
+                    <span>${u.username}</span>
+                    <div class="role-grid">
+                        <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'Admin')" 
+                            class="glow-btn ${roles.includes('Admin') ? 'active-admin' : ''}">Admin</button>
+                        
+                        <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'Alarm Display Admin')" 
+                            class="glow-btn ${roles.includes('Alarm Display Admin') ? 'active-alarm-admin' : ''}">Alarm Admin</button>
+                        
+                        <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'AD')" 
+                            class="glow-btn ${roles.includes('AD') ? 'active-ad' : ''}">AD</button>
+                        
+                        <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'Gesperrt')" 
+                            class="glow-btn ${roles.includes('Gesperrt') ? 'active-blocked' : ''}">Sperren</button>
+                    </div>
+                </div>`;
         });
+    }
 
-        async function loadUsers() {
-            const list = document.getElementById('user-list');
-            const snap = await getDocs(collection(db, "users"));
-            list.innerHTML = "";
-            snap.forEach(d => {
-                const u = d.data();
-                const roles = u.role || [];
-                list.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid var(--border); align-items:center;">
-                        <span>${u.username}</span>
-                        <div style="display:flex; gap:5px;">
-                            <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'Admin')" class="glow-btn ${roles.includes('Admin') ? 'active-admin' : ''}">Admin</button>
-                            <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'Alarm Display Admin')" class="glow-btn ${roles.includes('Alarm Display Admin') ? 'active-alarm-admin' : ''}">Alarm Admin</button>
-                            <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'AD')" class="glow-btn ${roles.includes('AD') ? 'active-ad' : ''}">AD</button>
-                            <button onclick="toggleRole('${d.id}', ${JSON.stringify(roles)}, 'Gesperrt')" class="glow-btn ${roles.includes('Gesperrt') ? 'active-blocked' : ''}">Sperren</button>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        window.toggleRole = async (uid, currentRoles, role) => {
-            let newRoles = currentRoles.includes(role) ? currentRoles.filter(r => r !== role) : [...currentRoles, role];
+    // FUNKTION: Rollen umschalten
+    window.toggleRole = async (uid, currentRoles, role) => {
+        let newRoles = currentRoles.includes(role) 
+            ? currentRoles.filter(r => r !== role) 
+            : [...currentRoles, role];
+        
+        try {
             await updateDoc(doc(db, "users", uid), { role: newRoles });
-            loadUsers();
-        };
+            loadUsers(); // Liste aktualisieren
+        } catch (e) {
+            alert("Fehler: Du hast keine Admin-Rechte im System!");
+        }
+    };
 
-        window.logout = () => signOut(auth);
-    </script>
-</body>
-</html>
+    // ... Restliche Funktionen (registerUser, logout) ...
+</script>
