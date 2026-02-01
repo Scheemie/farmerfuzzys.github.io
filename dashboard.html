@@ -100,72 +100,85 @@
         };
 
         onAuthStateChanged(auth, async user => {
-            if(!user) { window.location.href = "index.html"; return; }
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if(snap.exists()){
-                const d = snap.data();
-                document.getElementById('display-name').innerText = "Aktueller Name: " + (d.username || "Unbekannt");
-                const roles = d.role || [];
-                // Admin Prüfung (großgeschrieben wie in DB!)
-                if(roles.includes("Admin")) {
-                    document.getElementById('admin-nav').style.display = 'block';
-                    document.getElementById('card-admin').style.display = 'block';
-                }
-                // Alarm Display Prüfung
-                if(roles.includes("AD")) {
-                    document.getElementById('nav-alarm').style.display = 'block';
-                    document.getElementById('card-alarm').style.display = 'block';
-                }
-            }
-        });
+    if(!user) { window.location.href = "index.html"; return; }
+    const snap = await getDoc(doc(db, "users", user.uid));
+    
+    if(snap.exists()){
+        const d = snap.data();
+        const roles = d.role || [];
 
-        window.saveName = async () => {
-            const n = document.getElementById('new-name').value.trim();
-            if(!n) return;
-            try {
-                await updateDoc(doc(db, "users", auth.currentUser.uid), { username: n });
-                alert("Name erfolgreich aktualisiert!");
-                location.reload();
-            } catch(e) { alert("Fehler: Keine Berechtigung."); }
-        };
-
-        window.registerUser = async () => {
-            const u = document.getElementById('reg-user').value.trim();
-            const p = document.getElementById('reg-pass').value;
-            const roles = [];
-            if(document.getElementById('check-admin').classList.contains('active')) roles.push("Admin");
-            if(document.getElementById('check-ad').classList.contains('active')) roles.push("AD");
-
-            const tempApp = initializeApp(firebaseConfig, "Temp");
-            try {
-                const res = await createUserWithEmailAndPassword(getAuth(tempApp), u.toLowerCase() + "@farmerfuzzys.local", p);
-                await setDoc(doc(db, "users", res.user.uid), { username: u, role: roles });
-                await deleteApp(tempApp);
-                alert("Mitglied erfolgreich angelegt!");
-                loadUsers();
-            } catch(e) { alert("Fehler beim Erstellen: " + e.message); }
-        };
-
-        async function loadUsers() {
-            const list = document.getElementById('user-list');
-            const snap = await getDocs(collection(db, "users"));
-            list.innerHTML = "";
-            snap.forEach(d => {
-                const data = d.data();
-                list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); align-items:center;">
-                    <span>${data.username} <small style="color:var(--accent); margin-left:10px;">[${data.role.join(", ")}]</small></span>
-                    <button onclick="deleteUser('${d.id}')" style="color:var(--danger); background:none; border:1px solid var(--danger); padding:4px 10px; border-radius:4px; cursor:pointer;">Löschen</button>
+        // 1. PRÜFUNG: Ist der User gesperrt?
+        if(roles.includes("Gesperrt")) {
+            // Zeigt nur die Sperrmeldung und versteckt das Menü
+            document.querySelector('.main-content').innerHTML = `
+                <div class="card" style="border-color: var(--danger); text-align: center; margin-top: 50px;">
+                    <h1 style="color: var(--danger);">Konto gesperrt</h1>
+                    <p>Du hast keinen Zugriff mehr auf das System. Bitte kontaktiere einen Administrator.</p>
+                    <button onclick="logout()" class="btn-primary" style="margin-top: 20px; max-width: 200px;">Abmelden</button>
                 </div>`;
-            });
+            document.getElementById('admin-nav').style.display = 'none';
+            document.getElementById('nav-alarm').style.display = 'none';
+            return;
         }
 
-        window.deleteUser = async (id) => {
-            if(confirm("Dieses Mitglied wirklich dauerhaft entfernen?")) {
-                await deleteDoc(doc(db, "users", id));
-                loadUsers();
-            }
-        };
+        // 2. REGULÄRE ANZEIGE (wenn nicht gesperrt)
+        document.getElementById('display-name').innerText = "Aktueller Name: " + (d.username || "Gast");
+        
+        if(roles.includes("Admin")) {
+            document.getElementById('admin-nav').style.display = 'block';
+            document.getElementById('card-admin').style.display = 'block';
+        }
+        if(roles.includes("AD")) {
+            document.getElementById('nav-alarm').style.display = 'block';
+            document.getElementById('card-alarm').style.display = 'block';
+        }
+    }
+});
 
+// FUNKTION: Mitgliederliste laden (jetzt mit "Sperren" Knopf)
+async function loadUsers() {
+    const list = document.getElementById('user-list');
+    const snap = await getDocs(collection(db, "users"));
+    list.innerHTML = "";
+    
+    snap.forEach(d => {
+        const data = d.data();
+        const userId = d.id;
+        const roles = data.role || [];
+        const isGesperrt = roles.includes("Gesperrt");
+        
+        list.innerHTML += `
+            <div style="padding:15px; border-bottom:1px solid var(--border); background: ${isGesperrt ? 'rgba(255, 75, 75, 0.05)' : 'transparent'}">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span style="font-weight:bold; color: ${isGesperrt ? 'var(--danger)' : 'white'}">
+                        ${data.username} ${isGesperrt ? '(GESPERRT)' : ''}
+                    </span>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap: wrap;">
+                    <button onclick="updateRoles('${userId}', ${JSON.stringify(roles)}, 'Admin')" class="role-badge ${roles.includes('Admin') ? 'active' : ''}">Admin</button>
+                    <button onclick="updateRoles('${userId}', ${JSON.stringify(roles)}, 'AD')" class="role-badge ${roles.includes('AD') ? 'active' : ''}">Alarm Display</button>
+                    <button onclick="updateRoles('${userId}', ${JSON.stringify(roles)}, 'Gesperrt')" class="role-badge ${isGesperrt ? 'active' : ''}" style="${isGesperrt ? 'border-color:var(--danger); color:var(--danger);' : ''}">Sperren</button>
+                </div>
+            </div>`;
+    });
+}
+
+// FUNKTION: Ränge aktualisieren (Hinzufügen/Entfernen)
+window.updateRoles = async (uid, currentRoles, roleToToggle) => {
+    let newRoles = [...currentRoles];
+    if (newRoles.includes(roleToToggle)) {
+        newRoles = newRoles.filter(r => r !== roleToToggle);
+    } else {
+        newRoles.push(roleToToggle);
+    }
+
+    try {
+        await updateDoc(doc(db, "users", uid), { role: newRoles });
+        loadUsers();
+    } catch (e) {
+        alert("Fehler: Keine Berechtigung.");
+    }
+};
         window.logout = () => signOut(auth);
     </script>
 </body>
