@@ -2,38 +2,29 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>FarmerFuzzys Dashboard</title>
+    <title>Dashboard | FarmerFuzzys</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <nav class="sidebar">
-        <img src="Farmerfuzzys_logo.jpg" style="width:70px; margin:20px auto; border-radius:10px; display:block;">
+        <img src="Farmerfuzzys_logo.jpg" class="nav-logo">
         <button class="nav-btn" onclick="showTab('home')">Startseite</button>
         <button class="nav-btn" onclick="showTab('admin')" id="nav-admin" style="display:none;">Mitglieder</button>
-        <button class="nav-btn" onclick="showTab('alarm')" id="nav-alarm" style="display:none; color:#ff4b4b;">Alarm-Zentrale</button>
+        <button class="nav-btn" onclick="showTab('alarm')" id="nav-alarm" style="display:none; color:red;">Alarm-Zentrale</button>
         <button class="nav-btn" onclick="logout()" style="margin-top:auto;">Abmelden</button>
     </nav>
 
     <main class="main-content">
         <div id="tab-home" class="tab">
             <h1>Willkommen zurück</h1>
-            <p id="user-display" style="color:var(--accent); margin-top:10px;"></p>
+            <p id="status-text" style="color:#00f2ff; margin-top:10px;"></p>
         </div>
 
         <div id="tab-admin" class="tab" style="display:none;">
             <h1>Mitgliederverwaltung</h1>
             <div class="card">
                 <h3>Mitglieder & Rollen</h3>
-                <div id="user-list">Lade Liste...</div>
-            </div>
-        </div>
-
-        <div id="tab-alarm" class="tab" style="display:none;">
-            <h1>Alarm auslösen</h1>
-            <div class="card">
-                <input id="alarm-ort" placeholder="Einsatzort">
-                <input id="alarm-grund" placeholder="Einsatzgrund">
-                <button onclick="sendAlarm()" class="btn-primary" style="background:#ff4b4b; color:white;">ALARM SENDEN</button>
+                <div id="user-list">Lade...</div>
             </div>
         </div>
     </main>
@@ -59,55 +50,47 @@
             if(!user) { window.location.href = "index.html"; return; }
             const snap = await getDoc(doc(db, "users", user.uid));
             if(snap.exists()) {
-                const d = snap.data();
-                const roles = d.role || [];
+                const data = snap.data();
+                const roles = data.role || [];
+                document.getElementById('status-text').innerText = "Angemeldet als: " + data.username;
                 
-                // Sperr-Logik
-                if(roles.includes("Gesperrt")) {
-                    document.body.innerHTML = "<div style='color:red; text-align:center; padding:50px;'><h1>Konto gesperrt</h1><button onclick='location.reload()'>Logout</button></div>";
-                    signOut(auth); return;
-                }
-
-                document.getElementById('user-display').innerText = "Angemeldet als: " + (d.username || "Nutzer");
-                
-                // Menü einblenden basierend auf Rolle
                 if(roles.includes("Admin")) document.getElementById('nav-admin').style.display = 'block';
-                if(roles.includes("Admin") || roles.includes("Alarm Display Admin")) document.getElementById('nav-alarm').style.display = 'block';
+                if(roles.includes("Admin") || roles.includes("Alarm Display Admin")) {
+                    document.getElementById('nav-alarm').style.display = 'block';
+                }
             }
         });
 
-        window.showTab = (name) => {
+        window.showTab = (id) => {
             document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
-            document.getElementById('tab-' + name).style.display = 'block';
-            if(name === 'admin') loadUserList();
+            document.getElementById('tab-' + id).style.display = 'block';
+            if(id === 'admin') renderUsers();
         };
 
-        async function loadUserList() {
+        async function renderUsers() {
             const list = document.getElementById('user-list');
             const snap = await getDocs(collection(db, "users"));
             list.innerHTML = "";
             snap.forEach(d => {
                 const u = d.data();
-                const roles = u.role || [];
+                const r = u.role || [];
                 list.innerHTML += `
                     <div class="user-row">
                         <span>${u.username}</span>
-                        <div class="role-btns">
-                            <button onclick="setRole('${d.id}', ${JSON.stringify(roles)}, 'Admin')" class="glow-btn ${roles.includes('Admin') ? 'gold' : ''}">Admin</button>
-                            <button onclick="setRole('${d.id}', ${JSON.stringify(roles)}, 'Alarm Display Admin')" class="glow-btn ${roles.includes('Alarm Display Admin') ? 'blue' : ''}">Alarm Admin</button>
-                            <button onclick="setRole('${d.id}', ${JSON.stringify(roles)}, 'AD')" class="glow-btn ${roles.includes('AD') ? 'green' : ''}">AD</button>
-                            <button onclick="setRole('${d.id}', ${JSON.stringify(roles)}, 'Gesperrt')" class="glow-btn ${roles.includes('Gesperrt') ? 'red' : ''}">Sperren</button>
+                        <div class="btn-group">
+                            <button onclick="updateRole('${d.id}', ${JSON.stringify(r)}, 'Admin')" class="glow-btn ${r.includes('Admin')?'gold':''}">Admin</button>
+                            <button onclick="updateRole('${d.id}', ${JSON.stringify(r)}, 'Alarm Display Admin')" class="glow-btn ${r.includes('Alarm Display Admin')?'blue':''}">Alarm Admin</button>
+                            <button onclick="updateRole('${d.id}', ${JSON.stringify(r)}, 'AD')" class="glow-btn ${r.includes('AD')?'green':''}">AD</button>
+                            <button onclick="updateRole('${d.id}', ${JSON.stringify(r)}, 'Gesperrt')" class="glow-btn ${r.includes('Gesperrt')?'red':''}">Sperren</button>
                         </div>
                     </div>`;
             });
         }
 
-        window.setRole = async (uid, current, role) => {
-            let next = current.includes(role) ? current.filter(r => r !== role) : [...current, role];
-            try {
-                await updateDoc(doc(db, "users", uid), { role: next });
-                loadUserList();
-            } catch(e) { alert("Fehler: Keine Berechtigung!"); }
+        window.updateRole = async (uid, current, role) => {
+            let next = current.includes(role) ? current.filter(x => x !== role) : [...current, role];
+            await updateDoc(doc(db, "users", uid), { role: next });
+            renderUsers();
         };
 
         window.logout = () => signOut(auth);
