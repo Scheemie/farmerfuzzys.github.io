@@ -2,59 +2,127 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>ALARM DISPLAY - ERFURT</title>
+    <title>Erfurt - Alarm Monitor</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=DEIN_GOOGLE_API_KEY&libraries=places"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Oswald', sans-serif; margin: 0; overflow: hidden; }
-        .header { background: #e60000; padding: 20px; text-align: center; font-size: 3rem; font-weight: bold; text-transform: uppercase; }
-        .main-container { display: flex; height: 80vh; padding: 20px; gap: 20px; }
-        .info-box { flex: 2; background: #111; border: 4px solid #333; padding: 30px; border-radius: 15px; }
-        .vehicle-box { flex: 1; background: #111; border: 4px solid #333; padding: 20px; border-radius: 15px; }
-        .stichwort { color: #ffcc00; font-size: 5rem; margin: 0; }
-        .adresse { font-size: 3.5rem; margin: 20px 0; border-bottom: 2px solid #e60000; padding-bottom: 10px; }
-        .v-item { font-size: 1.8rem; padding: 10px; margin-bottom: 10px; background: #222; border-left: 10px solid #555; }
-        .v-item.active { border-left-color: #e60000; background: #300; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        :root { --bg: #05070a; --red: #e60000; --yellow: #ffcc00; --blue: #00f2ff; }
+        body { background: var(--bg); color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; }
+        
+        /* Einsatz-Modus Styles */
+        #alarm-view { display: none; grid-template-columns: 1fr 1fr; height: 100vh; animation: pulseRed 2s infinite; }
+        @keyframes pulseRed { 0% { box-shadow: inset 0 0 50px #300; } 50% { box-shadow: inset 0 0 100px #600; } 100% { box-shadow: inset 0 0 50px #300; } }
+
+        .info-panel { padding: 40px; border-right: 2px solid #333; }
+        .stichwort { font-size: 6rem; color: var(--yellow); margin: 0; font-weight: 900; }
+        .adresse { font-size: 3.5rem; margin: 20px 0; border-bottom: 4px solid var(--red); }
+        .timer { font-size: 2rem; color: #8b949e; }
+        #map { width: 100%; height: 100%; }
+
+        /* Ruhe-Modus Styles */
+        #idle-view { display: flex; flex-direction: column; height: 100vh; align-items: center; justify-content: center; }
+        .big-clock { font-size: 8rem; font-weight: bold; }
+        .weather { font-size: 3rem; color: var(--blue); }
+        .fz-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; width: 90%; }
+        .fz-card { background: #111; padding: 15px; border-radius: 8px; text-align: center; border-bottom: 8px solid #555; }
+        .status-2 { border-color: #10b981; } .status-3 { border-color: #f59e0b; } .status-4 { border-color: #ef4444; }
     </style>
 </head>
 <body>
-    <div class="header">Einsatznachricht</div>
-    <div class="main-container">
-        <div class="info-box">
-            <h1 id="disp-stichwort" class="stichwort">Warten auf Einsatz...</h1>
-            <div id="disp-adresse" class="adresse">-</div>
-            <div id="disp-info" style="font-size: 2rem; color: #aaa;">Zusatzinfo folgt bei Alarmierung</div>
+
+    <div id="alarm-view">
+        <div class="info-panel">
+            <div class="timer" id="time-since">Alarm vor: 00:00 min</div>
+            <h1 class="stichwort" id="alarm-stichwort">B3 - BRAND</h1>
+            <div class="adresse" id="alarm-adresse">Baumerstraße, Erfurt</div>
+            <div id="alarm-info" style="font-size: 2rem;">Wohnhausbrand - Personen in Gefahr</div>
+            <div style="margin-top: 40px;">
+                <h3>Alarmierte Kräfte:</h3>
+                <div id="alarm-vehicles" style="font-size: 2rem; display: flex; gap: 15px; flex-wrap: wrap;"></div>
+            </div>
         </div>
-        <div class="vehicle-box">
-            <h3>Alarmierte Kräfte:</h3>
-            <div id="disp-vehicles"></div>
-        </div>
+        <div id="map"></div>
+    </div>
+
+    <div id="idle-view">
+        <div class="weather" id="weather-text">Erfurt: 12°C ☁️</div>
+        <div class="big-clock" id="clock">12:00:00</div>
+        <div class="fz-grid" id="idle-fz-list">
+            </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = { /* DEINE CONFIG */ };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Wir hören auf ein Dokument namens "current_dispatch"
-        onSnapshot(doc(db, "system", "alarm"), (snap) => {
-            if(snap.exists()) {
-                const data = snap.data();
-                document.getElementById('disp-stichwort').innerText = data.stichwort;
-                document.getElementById('disp-adresse').innerText = data.adresse;
-                document.getElementById('disp-info').innerText = data.info || "Keine Zusatzinfo";
-                
-                let vHtml = "";
-                data.fahrzeuge.forEach(f => {
-                    vHtml += `<div class="v-item active">${f}</div>`;
-                });
-                document.getElementById('disp-vehicles').innerHTML = vHtml;
+        let alarmTimeout;
+        let alarmStartTime;
 
-                // Alarm-Sound abspielen
-                new Audio('alarm.mp3').play();
+        // 1. Uhrzeit & Wetter
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('de-DE');
+            if (alarmStartTime) {
+                const diff = Math.floor((now - alarmStartTime) / 1000);
+                const m = String(Math.floor(diff / 60)).padStart(2, '0');
+                const s = String(diff % 60).padStart(2, '0');
+                document.getElementById('time-since').innerText = `Alarm vor: ${m}:${s} min`;
             }
+        }, 1000);
+
+        // 2. Alarm-Überwachung
+        onSnapshot(doc(db, "system", "current_alarm"), (snap) => {
+            if (snap.exists() && snap.data().active) {
+                showAlarm(snap.data());
+            } else {
+                showIdle();
+            }
+        });
+
+        function showAlarm(data) {
+            alarmStartTime = new Date();
+            document.getElementById('alarm-view').style.display = 'grid';
+            document.getElementById('idle-view').style.display = 'none';
+            document.getElementById('alarm-stichwort').innerText = data.stichwort;
+            document.getElementById('alarm-adresse').innerText = data.adresse;
+            
+            // Fahrzeuge anzeigen
+            document.getElementById('alarm-vehicles').innerHTML = data.fahrzeuge.map(f => `<span style="background:red; padding:5px 15px; border-radius:5px;">${f}</span>`).join('');
+
+            // Karte laden
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 17, center: data.coords, styles: [{ "featureType": "all", "stylers": [{ "invert_lightness": true }] }]
+            });
+            new google.maps.Marker({ position: data.coords, map });
+
+            // Nach 3 Minuten (180000 ms) zurück zum Ruhemodus
+            clearTimeout(alarmTimeout);
+            alarmTimeout = setTimeout(() => showIdle(), 180000);
+        }
+
+        function showIdle() {
+            document.getElementById('alarm-view').style.display = 'none';
+            document.getElementById('idle-view').style.display = 'flex';
+            alarmStartTime = null;
+        }
+
+        // 3. Fahrzeugliste für den Ruhemodus (Echtzeit)
+        onSnapshot(collection(db, "users"), (snap) => {
+            const list = document.getElementById('idle-fz-list');
+            list.innerHTML = "";
+            snap.forEach(doc => {
+                const fz = doc.data();
+                if (fz.role.includes("Einsatzfahrzeug")) {
+                    list.innerHTML += `
+                        <div class="fz-card status-${fz.status}">
+                            <div style="font-size: 0.8rem; color: #8b949e;">${fz.username}</div>
+                            <div style="font-size: 2.5rem; font-weight: bold;">${fz.status}</div>
+                        </div>`;
+                }
+            });
         });
     </script>
 </body>
