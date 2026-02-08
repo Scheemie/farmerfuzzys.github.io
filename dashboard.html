@@ -2,88 +2,80 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Leitstelle Erfurt - Portal</title>
+    <title>Dashboard | FarmerFuzzys</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .hidden { display: none !important; }
+        .button-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
+        .big-card { background: #0d1117; border: 1px solid #30363d; padding: 40px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .big-card:hover { border-color: #00f2ff; background: #161b22; }
+    </style>
 </head>
 <body>
     <nav class="sidebar">
         <img src="Farmerfuzzys_logo.jpg" class="nav-logo">
-        <button class="nav-btn" onclick="showTab('home')">Startseite</button>
-        <button class="nav-btn" id="nav-dispo" style="display:none;" onclick="location.href='leitstelle.html'">Leitstelle</button>
-        <button class="nav-btn" id="nav-admin" style="display:none;" onclick="showTab('admin')">Verwaltung</button>
+        <button class="nav-btn" onclick="location.reload()">Startseite</button>
+        <button class="nav-btn" id="nav-admin" style="display:none;" onclick="showAdmin()">Verwaltung</button>
         <button class="nav-btn" onclick="logout()" style="margin-top:auto;">Abmelden</button>
     </nav>
 
     <main class="main-content">
-        <div id="tab-home" class="tab">
-            <h1 id="welcome-text">Willkommen zurück</h1>
-            <div class="button-grid">
-                <div id="card-dispo" class="big-card" style="display:none;" onclick="location.href='leitstelle.html'">
-                    <h3>Leitstelle (Disponent)</h3>
-                </div>
-                <div id="card-ad" class="big-card" style="display:none;" onclick="location.href='alarm_display.html'">
-                    <h3>Alarm Display</h3>
-                </div>
-                <div id="card-fz" class="big-card" style="display:none;" onclick="location.href='fahrzeug.html'">
-                    <h3>Fahrzeug-Modus</h3>
-                </div>
-                <div id="card-admin" class="big-card" style="display:none;" onclick="showTab('admin')">
-                    <h3>Verwaltung</h3>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-admin" class="tab" style="display:none;">
-            <h1>Mitglieder & Fahrzeuge verwalten</h1>
-            <div class="card">
-                <div id="user-list">Lade Daten...</div>
-            </div>
+        <h1 id="welcome-text">Prüfe Berechtigung...</h1>
+        
+        <div class="button-grid">
+            <div id="card-dispo" class="big-card hidden" onclick="location.href='leitstelle.html'"><h3>Leitstelle</h3></div>
+            <div id="card-ad" class="big-card hidden" onclick="location.href='alarm_display.html'"><h3>Alarm Display</h3></div>
+            <div id="card-fz" class="big-card hidden" onclick="location.href='fahrzeug.html'"><h3>Fahrzeug-Modus</h3></div>
+            <div id="card-admin" class="big-card hidden" onclick="showAdmin()"><h3>Verwaltung</h3></div>
         </div>
     </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, getDocs, collection, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = { /* DEINE CONFIG HIER */ };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
+            authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
+            projectId: "farmerfuzzys-c32eb",
+            storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
+            messagingSenderId: "842395157432",
+            appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        onAuthStateChanged(auth, async user => {
-            if(!user) { window.location.href = "index.html"; return; }
-            const snap = await getDoc(doc(db, "users", user.uid));
-            if(snap.exists()){
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            // WICHTIG: Pfad ist "users" + deine UID
+            const userRef = doc(db, "users", user.uid);
+            const snap = await getDoc(userRef);
+
+            if (snap.exists()) {
                 const d = snap.data();
                 const r = d.role || [];
-                document.getElementById('welcome-text').innerText = "Willkommen zurück " + d.username;
-                
-                if(r.includes("Admin")) {
+                document.getElementById('welcome-text').innerText = "Willkommen zurück, " + (d.username || "Nutzer");
+
+                if (r.includes("Admin")) {
                     document.getElementById('nav-admin').style.display = 'block';
-                    document.getElementById('card-admin').style.display = 'flex';
+                    document.getElementById('card-admin').classList.remove('hidden');
                 }
-                if(r.includes("Disponent")) {
-                    document.getElementById('nav-dispo').style.display = 'block';
-                    document.getElementById('card-dispo').style.display = 'flex';
-                }
-                if(r.includes("AD")) document.getElementById('card-ad').style.display = 'flex';
-                if(r.includes("Einsatzfahrzeug")) document.getElementById('card-fz').style.display = 'flex';
+                if (r.includes("Disponent")) document.getElementById('card-dispo').classList.remove('hidden');
+                if (r.includes("AD")) document.getElementById('card-ad').classList.remove('hidden');
+                if (r.includes("Einsatzfahrzeug")) document.getElementById('card-fz').classList.remove('hidden');
+            } else {
+                document.getElementById('welcome-text').innerText = "Fehler: Kein Datenbank-Profil gefunden!";
             }
         });
 
-        // Logik für Rollen-Update (Toggle-Funktion)
-        window.updateRole = async (uid, roleName) => {
-            const userRef = doc(db, "users", uid);
-            const snap = await getDoc(userRef);
-            let roles = snap.data().role || [];
-            roles = roles.includes(roleName) ? roles.filter(r => r !== roleName) : [...roles, roleName];
-            await updateDoc(userRef, { role: roles });
-            loadUserList();
-        };
-
         window.logout = () => signOut(auth);
-        window.showTab = (n) => { /* Tab-Wechsel Logik */ };
     </script>
 </body>
 </html>
