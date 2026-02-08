@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>ALARM DISPLAY - ERFURT</title>
+    <style>
+        body { background: #000; color: #fff; font-family: 'Oswald', sans-serif; margin: 0; overflow: hidden; }
+        .header { background: #e60000; padding: 20px; text-align: center; font-size: 3rem; font-weight: bold; text-transform: uppercase; }
+        .main-container { display: flex; height: 80vh; padding: 20px; gap: 20px; }
+        .info-box { flex: 2; background: #111; border: 4px solid #333; padding: 30px; border-radius: 15px; }
+        .vehicle-box { flex: 1; background: #111; border: 4px solid #333; padding: 20px; border-radius: 15px; }
+        .stichwort { color: #ffcc00; font-size: 5rem; margin: 0; }
+        .adresse { font-size: 3.5rem; margin: 20px 0; border-bottom: 2px solid #e60000; padding-bottom: 10px; }
+        .v-item { font-size: 1.8rem; padding: 10px; margin-bottom: 10px; background: #222; border-left: 10px solid #555; }
+        .v-item.active { border-left-color: #e60000; background: #300; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="header">Einsatznachricht</div>
+    <div class="main-container">
+        <div class="info-box">
+            <h1 id="disp-stichwort" class="stichwort">Warten auf Einsatz...</h1>
+            <div id="disp-adresse" class="adresse">-</div>
+            <div id="disp-info" style="font-size: 2rem; color: #aaa;">Zusatzinfo folgt bei Alarmierung</div>
+        </div>
+        <div class="vehicle-box">
+            <h3>Alarmierte Kräfte:</h3>
+            <div id="disp-vehicles"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = { /* DEINE CONFIG */ };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Wir hören auf ein Dokument namens "current_dispatch"
+        onSnapshot(doc(db, "system", "alarm"), (snap) => {
+            if(snap.exists()) {
+                const data = snap.data();
+                document.getElementById('disp-stichwort').innerText = data.stichwort;
+                document.getElementById('disp-adresse').innerText = data.adresse;
+                document.getElementById('disp-info').innerText = data.info || "Keine Zusatzinfo";
+                
+                let vHtml = "";
+                data.fahrzeuge.forEach(f => {
+                    vHtml += `<div class="v-item active">${f}</div>`;
+                });
+                document.getElementById('disp-vehicles').innerHTML = vHtml;
+
+                // Alarm-Sound abspielen
+                new Audio('alarm.mp3').play();
+            }
+        });
+    </script>
+</body>
+</html>
