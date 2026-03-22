@@ -30,19 +30,19 @@ select {
 
 <body>
 
-<h1>Fahrzeugstatus</h1>
+<h2>Fahrzeugstatus</h2>
 
 <div class="box" id="alarmBox">Kein Einsatz</div>
 
 <select onchange="setStatus(this.value)">
-  <option value="1">1 Einsatzbereit über Funk</option>
+  <option value="1">1 Einsatzbereit Funk</option>
   <option value="2">2 Einsatzbereit Wache</option>
   <option value="3">3 Anfahrt</option>
   <option value="4">4 Einsatzort</option>
   <option value="5">5 Sprechwunsch</option>
   <option value="6">6 Nicht bereit</option>
   <option value="7">7 Transport</option>
-  <option value="8">8 Zielort</option>
+  <option value="8">8 Ziel</option>
   <option value="9">9 Sonderstatus</option>
   <option value="0">0 Dringend</option>
 </select>
@@ -61,15 +61,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Einsatz anzeigen (nur Stichwort!)
+// nur Stichwort anzeigen
 onSnapshot(doc(db,"system","alarm"), (snap) => {
   if (!snap.exists()) return;
-
-  const a = snap.data();
-  alarmBox.innerHTML = a.stichwort;
+  alarmBox.innerText = snap.data().stichwort;
 });
 
-// Status setzen
 window.setStatus = async (status) => {
   const user = auth.currentUser;
   if (!user) return;
