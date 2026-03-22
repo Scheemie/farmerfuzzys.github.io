@@ -2,109 +2,41 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="style.css">
 <title>Login</title>
-
-<style>
-body {
-  margin:0;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:#0b0f14;
-  font-family:Arial;
-}
-
-.login-box {
-  background:#161b22;
-  padding:30px;
-  border-radius:10px;
-  width:300px;
-  border:1px solid #30363d;
-}
-
-h2 {
-  color:white;
-  margin-bottom:20px;
-}
-
-input {
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  background:#0d1117;
-  border:1px solid #30363d;
-  color:white;
-}
-
-button {
-  width:100%;
-  padding:10px;
-  background:#238636;
-  border:none;
-  color:white;
-  cursor:pointer;
-}
-
-.error {
-  color:red;
-  margin-top:10px;
-  font-size:12px;
-}
-</style>
 </head>
 
-<body>
+<body class="login-body">
 
 <div class="login-box">
-<h2>Anmeldung</h2>
+<img src="Farmerfuzzys_logo.jpg" class="logo">
+
+<h2>System Anmeldung</h2>
 
 <input id="email" placeholder="E-Mail">
 <input id="password" type="password" placeholder="Passwort">
 
 <button onclick="login()">Anmelden</button>
-
-<div class="error" id="error"></div>
+<div id="error"></div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDiYOJWP4XMQRJ6b-RfJp6Aqxis7E-uA30",
-  authDomain: "farmerfuzzys-c32eb.firebaseapp.com",
-  projectId: "farmerfuzzys-c32eb",
-  storageBucket: "farmerfuzzys-c32eb.firebasestorage.app",
-  messagingSenderId: "842395157432",
-  appId: "1:842395157432:web:fd031d7cc0c2a6e69ec54d"
-};;
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+import { auth, db } from "./firebase.js";
+import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 window.login = async () => {
   try {
-    const userCred = await signInWithEmailAndPassword(auth, email.value, password.value);
-    const uid = userCred.user.uid;
-
-    const snap = await getDoc(doc(db,"users", uid));
-
-    if (!snap.exists()) {
-      error.innerText = "Keine Rolle gefunden!";
-      return;
-    }
+    const user = await signInWithEmailAndPassword(auth, email.value, password.value);
+    const snap = await getDoc(doc(db,"users", user.user.uid));
 
     const role = snap.data().role;
+    localStorage.setItem("role", role);
 
-    if (role === "dispatcher") window.location.href = "leitstelle.html";
-    else if (role === "vehicle") window.location.href = "fahrzeug.html";
-    else if (role === "admin") window.location.href = "admin.html";
+    window.location.href = "dashboard.html";
 
   } catch (e) {
-    error.innerText = "Login fehlgeschlagen!";
+    error.innerText = "Login fehlgeschlagen";
     console.error(e);
   }
 };
