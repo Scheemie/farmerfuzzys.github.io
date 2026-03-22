@@ -1,20 +1,100 @@
 <!DOCTYPE html>
-<html>
-<body style="background:black;color:white">
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Leitstelle</title>
 
-<h1>🚒 Leitstelle</h1>
+<style>
+body {
+  margin:0;
+  background:#0b0f14;
+  color:#e6edf3;
+  font-family:Arial;
+}
 
-<input id="ort" placeholder="Ort"><br>
-<input id="stichwort" placeholder="Stichwort"><br>
-<input id="info" placeholder="Info"><br>
+.container {
+  display:grid;
+  grid-template-columns: 2fr 1fr;
+  height:100vh;
+}
 
-<button onclick="alarm()">🚨 Alarm</button>
+.panel {
+  padding:20px;
+  border-right:1px solid #30363d;
+}
 
-<div id="anzeige"></div>
+h1 {
+  font-size:18px;
+  margin-bottom:20px;
+}
+
+input {
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  background:#161b22;
+  border:1px solid #30363d;
+  color:white;
+}
+
+button {
+  width:100%;
+  padding:10px;
+  background:#1f6feb;
+  border:none;
+  color:white;
+  cursor:pointer;
+}
+
+.alarm-box {
+  margin-top:20px;
+  padding:15px;
+  border:1px solid #30363d;
+  background:#161b22;
+}
+
+.vehicle {
+  padding:10px;
+  border-bottom:1px solid #30363d;
+  display:flex;
+  justify-content:space-between;
+}
+
+.status {
+  font-size:12px;
+  color:#8b949e;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- LINK: EINSATZ -->
+<div class="panel">
+<h1>Einsatzaufnahme</h1>
+
+<input id="ort" placeholder="Einsatzort">
+<input id="stichwort" placeholder="Stichwort">
+<input id="info" placeholder="Zusatzinformationen">
+
+<button onclick="alarm()">Einsatz anlegen</button>
+
+<div class="alarm-box" id="alarmBox"></div>
+</div>
+
+<!-- RECHTS: FAHRZEUGE -->
+<div class="panel">
+<h1>Fahrzeuge</h1>
+<div id="vehicles"></div>
+</div>
+
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "HIER_DEIN_KEY",
@@ -24,26 +104,55 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const statusText = {
+  0:"Dringender Sprechwunsch",
+  1:"Einsatzbereit über Funk",
+  2:"Einsatzbereit auf Wache",
+  3:"Auf Anfahrt",
+  4:"Am Einsatzort",
+  5:"Sprechwunsch",
+  6:"Nicht einsatzbereit",
+  7:"Transportfahrt",
+  8:"Am Zielort",
+  9:"Sonderstatus"
+};
+
+// Einsatz erstellen
 window.alarm = async () => {
   await setDoc(doc(db,"system","alarm"), {
     ort: ort.value,
     stichwort: stichwort.value,
     info: info.value,
-    time: new Date().toLocaleTimeString()
+    time: new Date().toISOString()
   });
 };
 
-// LIVE
+// Aktuellen Einsatz anzeigen
 onSnapshot(doc(db,"system","alarm"), (snap) => {
   if (!snap.exists()) return;
   const a = snap.data();
 
-  anzeige.innerHTML = `
-    <h2>🚨 AKTUELL</h2>
-    <p>${a.stichwort}</p>
-    <p>${a.ort}</p>
-    <p>${a.info}</p>
+  alarmBox.innerHTML = `
+    <strong>${a.stichwort}</strong><br>
+    ${a.ort}<br>
+    ${a.info || ""}
   `;
+});
+
+// Fahrzeuge anzeigen
+onSnapshot(collection(db,"vehicles"), (snap) => {
+  vehicles.innerHTML = "";
+
+  snap.forEach(doc => {
+    const v = doc.data();
+
+    vehicles.innerHTML += `
+      <div class="vehicle">
+        <div>${v.name}</div>
+        <div class="status">${statusText[v.status]}</div>
+      </div>
+    `;
+  });
 });
 </script>
 
