@@ -1,78 +1,31 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Fahrzeug</title>
-
-<style>
-body {
-  background:#0b0f14;
-  color:white;
-  font-family:Arial;
-  padding:20px;
-}
-
-.box {
-  border:1px solid #30363d;
-  padding:15px;
-  margin-bottom:20px;
-}
-
-select {
-  width:100%;
-  padding:10px;
-  background:#161b22;
-  color:white;
-  border:1px solid #30363d;
-}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h2>Fahrzeugstatus</h2>
-
-<div class="box" id="alarmBox">Kein Einsatz</div>
+<h2>Status setzen</h2>
 
 <select onchange="setStatus(this.value)">
-  <option value="1">1 Einsatzbereit Funk</option>
-  <option value="2">2 Einsatzbereit Wache</option>
-  <option value="3">3 Anfahrt</option>
-  <option value="4">4 Einsatzort</option>
-  <option value="5">5 Sprechwunsch</option>
-  <option value="6">6 Nicht bereit</option>
-  <option value="7">7 Transport</option>
-  <option value="8">8 Ziel</option>
-  <option value="9">9 Sonderstatus</option>
-  <option value="0">0 Dringend</option>
+<option value="1">1 Einsatzbereit Funk</option>
+<option value="2">2 Wache</option>
+<option value="3">3 Anfahrt</option>
+<option value="4">4 Einsatzort</option>
+<option value="6">6 Nicht bereit</option>
 </select>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { db, auth } from "./firebase.js";
+import { updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "HIER_DEIN_KEY",
-  projectId: "farmerfuzzys-c32eb"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// nur Stichwort anzeigen
-onSnapshot(doc(db,"system","alarm"), (snap) => {
-  if (!snap.exists()) return;
-  alarmBox.innerText = snap.data().stichwort;
-});
-
-window.setStatus = async (status) => {
+window.setStatus = async (s) => {
   const user = auth.currentUser;
   if (!user) return;
 
   await updateDoc(doc(db,"vehicles", user.uid), {
-    status: Number(status)
+    status: Number(s)
   });
 };
 </script>
