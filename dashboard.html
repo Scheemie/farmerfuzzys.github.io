@@ -1,8 +1,33 @@
-<script>
-const role = localStorage.getItem("role");
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+</head>
 
-if (role === "dispatcher") window.location = "leitstelle.html";
-else if (role === "vehicle") window.location = "fahrzeug.html";
-else if (role === "display") window.location = "display.html";
-else window.location = "index.html";
+<body class="dashboard">
+
+<h1>Dashboard</h1>
+
+<div class="menu">
+
+<button onclick="go('leitstelle.html','Disponent')">Leitstelle</button>
+<button onclick="go('display.html','AD')">Display</button>
+<button onclick="go('verwaltung.html','Admin')">Verwaltung</button>
+
+</div>
+
+<script>
+function go(page, role){
+  const roles = JSON.parse(localStorage.getItem("roles") || "[]");
+
+  if(!roles.includes(role)){
+    alert("Kein Zugriff");
+    return;
+  }
+
+  window.location.href = page;
+}
 </script>
+
+</body>
+</html>
