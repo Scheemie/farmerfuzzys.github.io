@@ -2,22 +2,21 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<link rel="stylesheet" href="style.css">
 <title>Login</title>
+<link rel="stylesheet" href="style.css">
 </head>
 
-<body class="login-body">
+<body class="login">
 
 <div class="login-box">
-<img src="Fire Dispatcher.png" class="logo">
+<h1>FIRE DISPATCHER</h1>
 
-<h2>System Anmeldung</h2>
-
-<input id="email" placeholder="E-Mail">
+<input id="username" placeholder="Benutzername">
 <input id="password" type="password" placeholder="Passwort">
 
-<button onclick="login()">Anmelden</button>
-<div id="error"></div>
+<button onclick="login()">ANMELDEN</button>
+
+<p id="error"></p>
 </div>
 
 <script type="module">
@@ -27,17 +26,19 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-
 
 window.login = async () => {
   try {
-    const user = await signInWithEmailAndPassword(auth, email.value, password.value);
-    const snap = await getDoc(doc(db,"users", user.user.uid));
+    const email = username.value + "@farmerfuzzys.local";
 
-    const role = snap.data().role;
-    localStorage.setItem("role", role);
+    const user = await signInWithEmailAndPassword(auth, email, password.value);
+
+    const snap = await getDoc(doc(db,"users", user.user.uid));
+    const roles = snap.data().role;
+
+    localStorage.setItem("roles", JSON.stringify(roles));
 
     window.location.href = "dashboard.html";
 
   } catch (e) {
     error.innerText = "Login fehlgeschlagen";
-    console.error(e);
   }
 };
 </script>
